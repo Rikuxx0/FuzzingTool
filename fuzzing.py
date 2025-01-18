@@ -122,13 +122,14 @@ def fuzz(url, params=None, payloads=None):
         try:
             response_parttern = requests.get(url, params=test_params)
             
-            if response_parttern.text != result:
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
                 print(f'Found Injection')
                 print(f"Tested payload: {payload} | Status: {response_parttern.status_code} ")
             else:
                 print(f'Not Found | {payload}')
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
+
 
 # NoSQLインジェクション
 def test_nosql_injection(url):
@@ -139,9 +140,9 @@ def test_nosql_injection(url):
     headers = {'Content-Type': 'application/json'}
     for payload in NO_SQL_PAYLOADS:
         try:
-            response_parttern = requests.post(url, data=json.dumps(payload), headers=headers)
+            response_parttern = requests.post(url, json=payload, headers=headers)
             
-            if response_parttern.text != result:
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
                 print(f'Found NoSQL Injection')
                 print(f"Payload: {payload} | Status: {response_parttern.status_code}")
             else:
@@ -160,7 +161,7 @@ def test_csti(url):
     for payload in CSTI_PAYLOADS:
         try:
             response_parttern = requests.get(url, params={"name": payload})
-            if response_parttern.text != result:
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
                 print(f'Found CSTI Injection')
                 print(f"Payload: {payload} | Response: {response_parttern.text[:100]}")
             else:
@@ -183,7 +184,7 @@ def test_header_injection(url, headers):
         try:
             response_parttern = requests.get(url, headers=test_headers)
             
-            if response_parttern.text != result:
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
                 print(f'Found HTTP Header Injection')
                 print(f"Tested with payload: {payload}")
                 print(f"Status Code: {response_parttern.status_code}")
@@ -292,11 +293,7 @@ def test_unicode_injection(url, param):
 #xmlファイルのスクレイピング
 def scrape_xml(target_url):
     try:
-        if ".xml" in target_url:
-            #XMLファイルをパース
-            response = requests.get(target_url)
-            response.raise_for_status()
-
+        if response.headers.get("Content-Type") == "application/xml" or ".xml" in target_url:
             #要素を取得
             xml_content =response.content
             xml_data = etree.fromstring(xml_content)
@@ -361,7 +358,7 @@ def test_xxe(xml_data):
     print("=== Testing XXE Payload ===")
     try:
         # XXE脆弱性があるパーサー
-        parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定
+        parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定　取り扱い注意！
 
         # XMLをパース
         doc = etree.fromstring(xml_data, parser)
@@ -398,7 +395,7 @@ if __name__ == "__main__":
     if "ldap://" in target_url:
         print("contain 'ldap://' ")  
         domain, extension = split_domain(domain_name)
-        base_dn = "dc=" + str(domain) + "," + "dc=" + str(extension)
+        base_dn = f"dc={domain},dc={extension}"
         test_ldap_injection(target_url, base_dn)
     else:
         print("This url do not contain ldap")
