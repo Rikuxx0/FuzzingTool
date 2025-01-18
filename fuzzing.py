@@ -108,38 +108,61 @@ XXE_PAYLOAD = """
 <foo>&xxe;</foo>
 """
 
-
-# ファジング関数
+# ファジング関数 
 def fuzz(url, params=None, payloads=None):
     if payloads is None:
+        #比較用のレスポンステキスト
+        response = requests.get(url)
+        result = response.text
+
         payloads = XSS_PAYLOADS + SQL_PAYLOADS + OS_COMMAND_PAYLOADS
 
     for payload in payloads:
         test_params = {key: payload for key in (params or {})}
         try:
-            response = requests.get(url, params=test_params)
-            print(f"Testing payload: {payload} | Status: {response.status_code}")
+            response_parttern = requests.get(url, params=test_params)
+            print(f"Testing payload: {payload} | Status: {response_parttern.status_code} ")
+            if response_parttern.text != result:
+                print(f'Found Injection')
+            else:
+                print(f'Not Found')
         except Exception as e:
-            print(f"Error with payload {payload}: {e}")
+            print(f"Error with payload {payload}: {e}") 
 
 # NoSQLインジェクション
 def test_nosql_injection(url):
+    #比較用のレスポンステキスト
+    response = requests.get(url)
+    result = response.text
+
     headers = {'Content-Type': 'application/json'}
     for payload in NO_SQL_PAYLOADS:
         try:
-            response = requests.post(url, data=json.dumps(payload), headers=headers)
-            print(f"Payload: {payload} | Status: {response.status_code}")
+            response_parttern = requests.post(url, data=json.dumps(payload), headers=headers)
+            print(f"Payload: {payload} | Status: {response_parttern.status_code}")
+            if response_parttern.text != result:
+                print(f'Found NoSQL Injection')
+            else:
+                print(f'Not Found')
         except Exception as e:
             print(f"Error: {e}")
 
 
 # CSTIテスト関数
 def test_csti(url):
+    #比較用のレスポンステキスト
+    response = requests.get(url)
+    result = response.text
+    
     CSTI_PAYLOADS = ["${7*7}"]
     for payload in CSTI_PAYLOADS:
         try:
-            response = requests.get(url, params={"name": payload})
-            print(f"Payload: {payload} | Response: {response.text[:100]}")
+            response_parttern = requests.get(url, params={"name": payload})
+            print(f"Payload: {payload} | Response: {response_parttern.text[:100]}")
+            if response_parttern.text != result:
+                print(f'Found CSTI Injection')
+            else:
+                print(f'Not Found')
         except Exception as e:
             print(f"Error: {e}")
 
@@ -149,18 +172,26 @@ def test_header_injection(url, headers):
     """
     HTTPヘッダーインジェクションのテスト
     """
+    #比較用のレスポンステキスト
+    response = requests.get(url)
+    result = response.text
+
     for payload in HEADER_PAYLOADS:
         test_headers = {key: payload for key in headers}
         try:
-            response = requests.get(url, headers=test_headers)
+            response_parttern = requests.get(url, headers=test_headers)
             print(f"Testing with payload: {payload}")
-            print(f"Status Code: {response.status_code}")
-            print(f"Response Headers: {response.headers}")
+            print(f"Status Code: {response_parttern.status_code}")
+            print(f"Response Headers: {response_parttern.headers}")
+            if response_parttern.text != result:
+                print(f'Found HTTP Header Injection')
+            else:
+                print(f'Not Found')
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
 
 
-# LDAPインジェクション
+# LDAPインジェクション 最初のレスポンス内容の（いろんなインジェクションを比較するため）
 def test_ldap_injection(server, base_dn):
     for payload in LDAP_PAYLOADS:
         try:
@@ -191,7 +222,6 @@ def test_json_injection(url, base_data):
     headers = {
         "Content-Type": "application/json"
     }
-
     for payload in JSON_PAYLOADS:
         data = base_data.copy()
         data["username"] = payload
@@ -204,7 +234,8 @@ def test_json_injection(url, base_data):
 
             if "admin" in response.text or "alert" in response.text:
                 print(f"Potential vulnerability found with payload: {payload}\n")
-
+            else:
+                print(f"Not found  JSON Injection")
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
 
@@ -225,6 +256,8 @@ def test_crlf_injection(url, param):
         # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
         if "X-Custom-Header" in response.headers or "Set-Cookie" in response.headers:
             print(f"Potential CRLF Injection with payload: {payload}")
+        else:
+            print(f"Not found CRLF Injection")
 
 
 #unicodeインジェクション
@@ -241,6 +274,8 @@ def test_unicode_injection(url, param):
             print(f"Potential Path Traversal with payload: {payload}")
         elif "<script>alert(1)</script>" in response.text:
             print(f"Potential XSS with payload: {payload}")
+        else:
+            print(f"Not Found Unicode Injection")
 
 
 #xPath and XSTL injection and XXE
@@ -256,9 +291,9 @@ def scrape_xml(target_url):
             #要素を取得
             xml_content =response.content
             xml_data = etree.fromstring(xml_content)
+            return xml_data
         else:
             print("This url do not contain XML file")
-        return xml_data
 
     except requests.exceptions.RequestException as req_err:
         print(f"HTTP Request Error: {req_err}")
