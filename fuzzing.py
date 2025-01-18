@@ -409,7 +409,7 @@ def test_xxe(xml_data):
     """
     try:
         # XXE脆弱性があるパーサー
-        parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定　取り扱い注意！
+        parser = etree.XMLParser(resolve_entities=false)  # 外部エンティティを解決する設定　取り扱い注意！
 
         # XMLをパース
         doc = etree.fromstring(xml_data, parser)
