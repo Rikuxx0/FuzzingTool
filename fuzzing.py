@@ -111,21 +111,22 @@ XXE_PAYLOAD = """
 # ファジング関数 
 def fuzz(url, params=None, payloads=None):
     if payloads is None:
-        #比較用のレスポンステキスト
-        response = requests.get(url)
-        result = response.text
-
         payloads = XSS_PAYLOADS + SQL_PAYLOADS + OS_COMMAND_PAYLOADS
+
+    #比較用のレスポンステキスト
+    response = requests.get(url)
+    result = response.text
 
     for payload in payloads:
         test_params = {key: payload for key in (params or {})}
         try:
             response_parttern = requests.get(url, params=test_params)
-            print(f"Testing payload: {payload} | Status: {response_parttern.status_code} ")
+            
             if response_parttern.text != result:
                 print(f'Found Injection')
+                print(f"Tested payload: {payload} | Status: {response_parttern.status_code} ")
             else:
-                print(f'Not Found')
+                print(f'Not Found | {payload}')
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
 
@@ -139,11 +140,12 @@ def test_nosql_injection(url):
     for payload in NO_SQL_PAYLOADS:
         try:
             response_parttern = requests.post(url, data=json.dumps(payload), headers=headers)
-            print(f"Payload: {payload} | Status: {response_parttern.status_code}")
+            
             if response_parttern.text != result:
                 print(f'Found NoSQL Injection')
+                print(f"Payload: {payload} | Status: {response_parttern.status_code}")
             else:
-                print(f'Not Found')
+                print(f'Not Found | {payload}')
         except Exception as e:
             print(f"Error: {e}")
 
@@ -158,11 +160,11 @@ def test_csti(url):
     for payload in CSTI_PAYLOADS:
         try:
             response_parttern = requests.get(url, params={"name": payload})
-            print(f"Payload: {payload} | Response: {response_parttern.text[:100]}")
             if response_parttern.text != result:
                 print(f'Found CSTI Injection')
+                print(f"Payload: {payload} | Response: {response_parttern.text[:100]}")
             else:
-                print(f'Not Found')
+                print(f'Not Found | {payload}')
         except Exception as e:
             print(f"Error: {e}")
 
@@ -180,13 +182,14 @@ def test_header_injection(url, headers):
         test_headers = {key: payload for key in headers}
         try:
             response_parttern = requests.get(url, headers=test_headers)
-            print(f"Testing with payload: {payload}")
-            print(f"Status Code: {response_parttern.status_code}")
-            print(f"Response Headers: {response_parttern.headers}")
+            
             if response_parttern.text != result:
                 print(f'Found HTTP Header Injection')
+                print(f"Tested with payload: {payload}")
+                print(f"Status Code: {response_parttern.status_code}")
+                print(f"Response Headers: {response_parttern.headers}")
             else:
-                print(f'Not Found')
+                print(f'Not Found | {payload}')
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
 
@@ -228,14 +231,15 @@ def test_json_injection(url, base_data):
 
         try:
             response = requests.post(url, data=json.dumps(data), headers=headers)
-            print(f"Testing with payload: {payload}")
-            print(f"Status Code: {response.status_code}")
-            print(f"Response Text: {response.text[:100]}")
-
+            
             if "admin" in response.text or "alert" in response.text:
                 print(f"Potential vulnerability found with payload: {payload}\n")
+                print(f"Tested with payload: {payload}")
+                print(f"Status Code: {response.status_code}")
+                print(f"Response Text: {response.text[:100]}")
+
             else:
-                print(f"Not found  JSON Injection")
+                print(f"Not found | {payload}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
 
@@ -249,15 +253,16 @@ def test_crlf_injection(url, param):
         params = {param: "apple" + payload}
         response = requests.get(url, params=params)
 
-        print(f"Testing payload: {payload}")
-        print(f"Status Code: {response.status_code}")
-        print(f"Response Headers:\n{response.headers}\n")
+        
 
         # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
         if "X-Custom-Header" in response.headers or "Set-Cookie" in response.headers:
             print(f"Potential CRLF Injection with payload: {payload}")
+            print(f"Tested payload: {payload}")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response Headers:\n{response.headers}\n")
         else:
-            print(f"Not found CRLF Injection")
+            print(f"Not found {payload}")
 
 
 #unicodeインジェクション
@@ -266,16 +271,20 @@ def test_unicode_injection(url, param):
         params = {param: "admin" + payload}
         response = requests.get(url, params=params)
         
-        print(f"Testing payload: {payload}")
-        print(f"Status Code: {response.status_code}")
-        print(f"Response:\n{response.text[:100]}\n")
+        
 
         if "root:" in response.text:
             print(f"Potential Path Traversal with payload: {payload}")
+            print(f"Tested payload: {payload}")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response:\n{response.text[:100]}\n")
         elif "<script>alert(1)</script>" in response.text:
             print(f"Potential XSS with payload: {payload}")
+            print(f"Tested payload: {payload}")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response:\n{response.text[:100]}\n")
         else:
-            print(f"Not Found Unicode Injection")
+            print(f"Not Found {payload}")
 
 
 #xPath and XSTL injection and XXE
@@ -302,7 +311,6 @@ def scrape_xml(target_url):
     except Exception as e:
         print(f"Unexpected Error: {e}")
 
-    return None
 
 #XPathインジェクション検証　　
 def test_xpath_injection(xml_data):
@@ -392,6 +400,8 @@ if __name__ == "__main__":
         domain, extension = split_domain(domain_name)
         base_dn = "dc=" + str(domain) + "," + "dc=" + str(extension)
         test_ldap_injection(target_url, base_dn)
+    else:
+        print("This url do not contain ldap")
     
     print("=== JSON Injecion Test")
     base_data = {
