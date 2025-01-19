@@ -1,1 +1,1 @@
-# FuzzingTool bata version
+# FuzzingTool beta version
