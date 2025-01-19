@@ -133,42 +133,39 @@ GENERIC_PAYLOADS = [
 ALL_PAYLOADS = XSS_PAYLOADS + SQL_PAYLOADS + NOSQL_PAYLOADS + GENERIC_PAYLOADS
 
 
-def fuzz_target_list(target_list: List[Dict], payloads: List[str]):
+def send_request(url: str, method: str, params: Dict, data: Dict) -> requests.Response:
     """
-    検索リストを対象にインジェクションテストを実行
-    :param target_list: [{'url': '...', 'params': {'q': 'test'}, 'method': 'GET'}, ...]
-    :param payloads: ペイロードのリスト
+    HTTPリクエストを送信
+    :param url: ターゲットURL
+    :param method: HTTPメソッド (GET, POST, etc.)
+    :param params: クエリパラメータ
+    :param data: POSTデータ
+    :return: リクエストのレスポンスオブジェクト
     """
-    for target in target_list:
-        url = target.get('url')
-        method = target.get('method', 'GET').upper()
-        params = target.get('params', {})
-        data = target.get('data', {})
-        
-        print(f"\nTesting URL: {url} with method: {method}")
-        
-        for payload in payloads:
-            try:
-                # パラメータにペイロードを挿入
-                test_params = {k: payload for k in params}
-                test_data = {k: payload for k in data}
-                
-                # リクエストの実行
-                if method == 'GET':
-                    response = requests.get(url, params=test_params)
-                elif method == 'POST':
-                    response = requests.post(url, data=test_data)
-                else:
-                    print(f"Unsupported method: {method}")
-                    continue
-                
-                # レスポンスの確認
-                if response.status_code == 200 and payload in response.text:
-                    print(f"[+] Vulnerability detected with payload: {payload}")
-                else:
-                    print(f"[-] No vulnerability found for payload: {payload}")
-            except Exception as e:
-                print(f"[!] Error during testing with payload {payload}: {e}")
+    try:
+        if method == 'GET':
+            return requests.get(url, params=params)
+        elif method == 'POST':
+            return requests.post(url, data=data)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+    except requests.RequestException as e:
+        raise RuntimeError(f"Request failed: {e}")
+
+
+def analyze_response(response: requests.Response, payload: str):
+    """
+    レスポンスを解析して脆弱性を検出
+    :param response: HTTPレスポンスオブジェクト
+    :param payload: 使用したペイロード
+    """
+    try:
+        if response.status_code == 200 and payload in response.text:
+            print(f"[+] Vulnerability detected with payload: {payload}")
+        else:
+            print(f"[-] No vulnerability found for payload: {payload}")
+    except Exception as e:
+        print(f"[!] Error analyzing response for payload {payload}: {e}")
 
 
 def load_target_list(filename: str) -> Union[List[Dict], str]:
@@ -203,6 +200,42 @@ def load_target_list(filename: str) -> Union[List[Dict], str]:
     except Exception as e:
         print(f"Error loading target list: {e}")
         return []
+
+def fuzz_target_list(target_list: List[Dict], payloads: List[str]):
+    """
+    検索リストを対象にインジェクションテストを実行
+    :param target_list: [{'url': '...', 'params': {'q': 'test'}, 'method': 'GET'}, ...]
+    :param payloads: ペイロードのリスト
+    """
+    for target in target_list:
+        url = target.get('url')
+        method = target.get('method', 'GET').upper()
+        params = target.get('params', {})
+        data = target.get('data', {})
+        
+        # URLが存在しない場合のチェック
+        if not url:
+            print(f"[!] Skipping target due to missing URL: {target}")
+            continue
+
+        print(f"\nTesting URL: {url} with method: {method}")
+        
+        for payload in payloads:
+            # テスト用のパラメータとデータを構築
+            test_params = {k: payload for k in params}
+            test_data = {k: payload for k in data}
+            
+            try:
+                # リクエストの実行
+                response = send_request(url, method, test_params, test_data)
+                
+                # レスポンスの解析
+                analyze_response(response, payload)
+            except Exception as e:
+                print(f"[!] Error during testing with payload {payload}: {e}")
+
+
+
 
 # NoSQLインジェクション
 def test_nosql_injection(url):
