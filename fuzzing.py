@@ -1,9 +1,12 @@
 import requests
 import json
+import csv
+import yaml
 import sys
+from bs4 import BeautifulSoup
 from ldap3 import Server, Connection, ALL
 from lxml import etree
-from typing import List, Dict
+from typing import List, Dict, Union
 
 # テスト用ペイロードの定義
 XSS_PAYLOADS = [
@@ -168,19 +171,38 @@ def fuzz_target_list(target_list: List[Dict], payloads: List[str]):
                 print(f"[!] Error during testing with payload {payload}: {e}")
 
 
-def load_target_list(filename: str) -> List[Dict]:
+def load_target_list(filename: str) -> Union[List[Dict], str]:
     """
-    JSON形式の検索リストを読み込む
-    :param filename: JSONファイル名
-    :return: ターゲットリスト
+    検索リストをさまざまな形式から読み込む
+    :param filename: ファイル名（JSON, CSV, YAML, HTML をサポート）
+    :return: ターゲットリストまたはHTML文字列
     """
     try:
-        with open(filename, 'r') as file:
-            return json.load(file)
+        # ファイル拡張子に基づいて処理を分ける
+        if filename.endswith('.json'):
+            with open(filename, 'r', encoding='utf-8') as file:
+                return json.load(file)
+
+        elif filename.endswith('.csv'):
+            with open(filename, 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                return [row for row in reader]
+
+        elif filename.endswith(('.yaml', '.yml')):
+            with open(filename, 'r', encoding='utf-8') as file:
+                return yaml.safe_load(file)
+
+        elif filename.endswith('.html'):
+            with open(filename, 'r', encoding='utf-8') as file:
+                soup = BeautifulSoup(file, 'html.parser')
+                return soup.prettify()
+
+        else:
+            raise ValueError(f"Unsupported file format for: {filename}")
+
     except Exception as e:
         print(f"Error loading target list: {e}")
         return []
-
 
 # NoSQLインジェクション
 def test_nosql_injection(url):
