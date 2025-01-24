@@ -293,13 +293,18 @@ def test_unicode_injection(url, param):
 #xmlファイルのスクレイピング
 def scrape_xml(target_url):
     try:
-        if response.headers.get("Content-Type") == "application/xml" or ".xml" in target_url:
-            #要素を取得
-            xml_content =response.content
-            xml_data = etree.fromstring(xml_content)
-            return xml_data
+        response = requests.get(target_url)
+        if response.status_code == 200:
+            content_type =response.headers.get("Content-Type", "")
+            if "application/xml" in content_type or target_url.endswith(".xml"):
+                #要素を取得
+                xml_content =response.content
+                xml_data = etree.fromstring(xml_content)
+                return xml_data
+            else:
+                print("The provided URL does not return XML content.")
         else:
-            print("This url do not contain XML file")
+            print(f"Failed to fetch URL: Status Code {response.status_code}")
 
     except requests.exceptions.RequestException as req_err:
         print(f"HTTP Request Error: {req_err}")
@@ -307,7 +312,7 @@ def scrape_xml(target_url):
         print(f"XML Analyze Error: {xml_err}")
     except Exception as e:
         print(f"Unexpected Error: {e}")
-
+    return None
 
 #XPathインジェクション検証　　
 def test_xpath_injection(xml_data):
