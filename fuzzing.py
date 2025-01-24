@@ -316,6 +316,10 @@ def scrape_xml(target_url):
 
 #XPathインジェクション検証　　
 def test_xpath_injection(xml_data):
+    if xml_data is None:
+        print("No valid XML data provided for XPath Injection Test.")
+        return
+    
     # XMLの読み込み
     xml_root = etree.fromstring(xml_data)
 
@@ -333,11 +337,18 @@ def test_xpath_injection(xml_data):
         else:
             print(f"[-] Failed with payload: {payload}")
 
+
+    
+
 #XSLTインジェクション検証
 def test_xslt_injection(xml_data):
     """
     XSLT Injectionの検証関数
     """
+    if xml_data is None:
+        print("No valid XML data provided for XSLT Injection Test.")
+        return
+
     for payload in XSLT_PAYLOADS:
         try:
             # XSLTのパース
@@ -361,6 +372,10 @@ def test_xxe(xml_data):
     :param xml_payload: 攻撃を含むXMLデータ
     """
     print("=== Testing XXE Payload ===")
+    if xml_data is None:
+        print("No valid XML data provided for XXE Test.")
+        return
+
     try:
         # XXE脆弱性があるパーサー
         parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定　取り扱い注意！
@@ -420,11 +435,16 @@ if __name__ == "__main__":
     
     print("Scan XML file......")
     xml_data = scrape_xml(target_url)
-    print("=== XPath Injection Test ===") 
-    test_xpath_injection(xml_data)
+    if xml_data:
+        print("=== XPath Injection Test ===") 
+        test_xpath_injection(xml_data)
 
-    print("===XSLT Injection Test ===") 
-    test_xslt_injection(xml_data)
+        print("===XSLT Injection Test ===") 
+        test_xslt_injection(xml_data)
 
-    print("===XXE Test ===") 
-    test_xxe(xml_data)
+        print("===XXE Test ===") 
+        test_xxe(xml_data)
+    else:
+        print("No valid XML data found. Skipping XML-related tests.")
+
+    print("Finish check!")
