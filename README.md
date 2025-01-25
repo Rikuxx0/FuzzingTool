@@ -27,7 +27,7 @@ Install the required dependencies using:
 ```bash
 pip install requests ldap3 lxml
 ```
-And, in XXE_checker, external entity references is turned off,so Please change from false to true
+And, in XXE_checker, external entity references is turned off at first,so Please change from false to true
 
 ## Usage
 Run the script with the target URL as an argument:
