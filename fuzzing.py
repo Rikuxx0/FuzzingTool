@@ -142,7 +142,7 @@ def test_nosql_injection(url):
         try:
             response_parttern = requests.post(url, json=payload, headers=headers)
             
-            if response_parttern.status_code != response.status_code or response_parttern.text != result:
+            if response_parttern.text != result:
                 print(f'Found NoSQL Injection')
                 print(f"Payload: {payload} | Status: {response_parttern.status_code}")
             else:
@@ -401,13 +401,13 @@ if __name__ == "__main__":
     print("=== Fuzzing ===")
     fuzz(target_url, params={"username": "test", "password":"password", "q": "test"})
 
-    print('=== NoSQL Injection Test') 
+    print('=== NoSQL Injection Test ===') 
     test_nosql_injection(target_url)
 
     print("=== CSTI Test ===")
     test_csti(target_url)
 
-    print("=== HTTP Header Injection Test")
+    print("=== HTTP Header Injection Test ===")
     headers = {"User-Agent": "test"}  
     test_header_injection(target_url, headers)
     
@@ -420,7 +420,7 @@ if __name__ == "__main__":
     else:
         print("This url do not contain ldap")
     
-    print("=== JSON Injecion Test")
+    print("=== JSON Injecion Test ===")
     base_data = {
         "username": "test",
         "role": "user"
