@@ -109,16 +109,17 @@ XXE_PAYLOADS = """
 """
 
 # ファジング関数 
-def fuzz(url, params=None, payloads=None):
+def fuzz(url, base_params, target_param, payloads=None):
     if payloads is None:
-        payloads = XSS_PAYLOADS + SQL_PAYLOADS + OS_COMMAND_PAYLOADS
+        payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
     #比較用のレスポンステキスト
-    response = requests.get(url)
+    response = requests.get(url, params=base_params)
     result = response.text
 
     for payload in payloads:
-        test_params = {key: payload for key in (params or {})}
+        test_params = base_params.copy()
+        test_params[target_param] = payload
         try:
             response_parttern = requests.get(url, params=test_params)
             
@@ -130,6 +131,35 @@ def fuzz(url, params=None, payloads=None):
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
 
+def fuzz_login(url, username_input_field="username", password_input_field="password", payload=None):
+    
+    for payload in SQL_PAYLOADS:
+        data = {
+            username_field: username_input_field + "=" + payload,
+            password_field: password_input_field + "=" + "dummy"
+        }
+        try:
+            res = requests.post(url, data=data)
+            if "invalid" not in res.text.lower() and res.status_code == 200:
+                print(f"Possible | username: {payload}")
+            else:
+                print(f"No Possible | username : {payload}")
+        except Exception as e:
+            print(f"Error username form: {payload}）: {e}")
+
+    for payload in SQL_PAYLOADS:
+        data = {
+            username_field: username_input_field + "=" + "dummy",
+            password_field: password_input_field + "=" + payload
+        }
+        try:
+            res = requests.post(url, data=data)
+            if "invalid" not in res.text.lower() and res.status_code == 200:
+                print(f"Possible | password: {payload}")
+            else:
+                print(f"No Possible | password: {payload}")
+        except Exception as e:
+            print(f"Error password form: {payload}）: {e}")
 
 # NoSQLインジェクション
 def test_nosql_injection(url):
@@ -196,15 +226,26 @@ def test_header_injection(url, headers):
 
 
 # LDAPインジェクション 最初のレスポンス内容の（いろんなインジェクションを比較するため）
-def test_ldap_injection(server, base_dn):
+def test_ldap_injection(server_url: str, base_dn: str):
+    server = Server(server_url, get_info=ALL)
+    conn = Connection(server)
+    if not conn.bind():
+        print("Bind failed.")
+        return
+
     for payload in LDAP_PAYLOADS:
         try:
-            conn = Connection(server, user=f"uid={payload},{base_dn}", password="password")
-            conn.bind()
-            print(f"Payload: {payload} | Bound: {conn.bound}")
-            conn.unbind()
+            search_filter = f"(uid={payload})"
+            conn.search(search_base=base_dn, search_filter=search_filter, attributes=["cn", "mail", "uid", "telephoneNumber"])
+            if conn.entries:
+                print(f"[+] Injection possible with payload: {payload}")
+                for entry in conn.entries:
+                    print(f" - {entry}")
+            else:
+                print(f"[-] No result for: {payload}")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error with payload {payload}: {e}")
+    conn.unbind()
 
 
 
@@ -246,15 +287,12 @@ def test_json_injection(url, base_data):
 
 
 #CRLFインジェクション
-def test_crlf_injection(url, param):
+def test_crlf_injection(url):
     """
     CRLFインジェクションのテスト関数
     """
     for payload in CRLF_PAYLOADS:
-        params = {param: "apple" + payload}
-        response = requests.get(url, params=params)
-
-        
+        response = requests.get(url, params=payload)
 
         # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
         if "X-Custom-Header" in response.headers or "Set-Cookie" in response.headers:
@@ -272,7 +310,6 @@ def test_unicode_injection(url, param):
         params = {param: "admin" + payload}
         response = requests.get(url, params=params)
         
-        
 
         if "root:" in response.text:
             print(f"Potential Path Traversal with payload: {payload}")
@@ -288,31 +325,6 @@ def test_unicode_injection(url, param):
             print(f"Not Found {payload}")
 
 
-#xmlファイルのスクレイピング
-def scrape_xml(target_url):
-    try:
-        response = requests.get(target_url)
-        if response.status_code == 200:
-            content_type =response.headers.get("Content-Type", "")
-            if "application/xml" in content_type or target_url.endswith(".xml"):
-                #要素を取得
-                xml_content =response.content
-                xml_data = etree.fromstring(xml_content)
-                return xml_data
-            else:
-                print("The provided URL does not return XML content.")
-        else:
-            print(f"Failed to fetch URL: Status Code {response.status_code}")
-
-    except requests.exceptions.RequestException as req_err:
-        print(f"HTTP Request Error: {req_err}")
-    except etree.XMLSyntaxError as xml_err:
-        print(f"XML Analyze Error: {xml_err}")
-    except Exception as e:
-        print(f"Unexpected Error: {e}")
-    return None
-
-
 #XPathインジェクション検証　　
 def test_xpath_injection(url):
     for payload in XPATH_PAYLOADS:
@@ -320,12 +332,11 @@ def test_xpath_injection(url):
         query = f"//user[username='{payload}']/password"
 
         #比較用のレスポンステキスト
-        response = requests.get(url)
+        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
         result = response.text
 
-        queries = {key: payload for key in (query or {})}
         try:
-            response_parttern = requests.get(url, queries)
+            response_parttern = requests.get(url, query,  headers={'Content-Type': 'application/xml'})
             
             if response_parttern.status_code != response.status_code or response_parttern.text != result:
                 print(f'Found XPath Injection')
@@ -346,11 +357,11 @@ def test_xslt_injection(url):
         xslt_doc = etree.XSLT(xslt_root)
             
         #比較用のレスポンステキスト
-        response = requests.get(url)
+        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
         result = response.text
 
         try:
-            response_parttern = requests.get(url, xslt_doc)
+            response_parttern = requests.get(url, xslt_doc, headers={'Content-Type': 'application/xml'})
             
             if response_parttern.status_code != response.status_code or response_parttern.text != result:
                 print(f'Found XSLT Injection')
@@ -372,11 +383,11 @@ def test_xxe(url):
             doc = etree.fromstring(payload, parser)
             
             #比較用のレスポンステキスト
-            response = requests.get(url)
+            response = requests.get(url,  headers={'Content-Type': 'application/xml'})
             result = response.text
 
             try:
-                response_parttern = requests.get(url, doc)
+                response_parttern = requests.get(url, doc,  headers={'Content-Type': 'application/xml'})
             
                 if response_parttern.status_code != response.status_code or response_parttern.text != result:
                     print(f'Found XXE Injection')
@@ -389,17 +400,20 @@ def test_xxe(url):
             print(f"[-] Failed to parse: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python fuzzing.py <URL>")
+    if len(sys.argv) < 3:
+        print("Usage: python fuzzing.py <URL> or python fuzzing.py <URL> <username_field>  <password_field>  username_field and password_field are parameters!")
         sys.exit(1)
 
     target_url = sys.argv[1]
+    username_field = sys.argv[2]
+    password_field = sys.argv[3]
     print(f"Target URL: {target_url}")
     
     print("=== XSS SQL OS Injection Test === ")
-    
+
     print("=== Fuzzing ===")
-    fuzz(target_url, params={"username": "test", "password":"password", "q": "test"})
+    fuzz(target_url, base_params={"q": "test"}, target_param="q" )
+    fuzz_login(target_url, username_field,  password_field)
 
     print('=== NoSQL Injection Test ===') 
     test_nosql_injection(target_url)
@@ -414,7 +428,7 @@ if __name__ == "__main__":
     print("=== LDAP Injection ===") 
     if "ldap://" in target_url:
         print("contain 'ldap://' ")  
-        domain, extension = split_domain(target_url)
+        domain, extension = split_domain(target_url.replace("ldap://", ""))
         base_dn = f"dc={domain},dc={extension}"
         test_ldap_injection(target_url, base_dn)
     else:
@@ -428,10 +442,10 @@ if __name__ == "__main__":
     test_json_injection(target_url, base_data)
 
     print("=== CSLF Injection Test ===")
-    test_crlf_injection(target_url, "query")
+    test_crlf_injection(target_url)
 
     print("=== Unicode Injection Test ===")
-    test_unicode_injection(target_url, "username") 
+    test_unicode_injection(target_url) 
     
     print("=== XPath Injection Test ===") 
     test_xpath_injection(target_url)
