@@ -414,7 +414,7 @@ if __name__ == "__main__":
     print("=== LDAP Injection ===") 
     if "ldap://" in target_url:
         print("contain 'ldap://' ")  
-        domain, extension = split_domain(domain_name)
+        domain, extension = split_domain(target_url)
         base_dn = f"dc={domain},dc={extension}"
         test_ldap_injection(target_url, base_dn)
     else:
