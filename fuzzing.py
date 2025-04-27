@@ -109,7 +109,7 @@ XXE_PAYLOADS = """
 """
 
 # ファジング関数 
-def fuzz(url, base_params, target_param, payloads=None):
+def fuzz(url: str, base_params :str, target_param: str, payloads: str = None):
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
@@ -131,7 +131,7 @@ def fuzz(url, base_params, target_param, payloads=None):
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
 
-def fuzz_login(url, username_input_field="username", password_input_field="password", payload=None):
+def fuzz_login(url: str, username_input_field="username", password_input_field="password", payload: str = None):
     
     for payload in SQL_PAYLOADS:
         data = {
@@ -162,7 +162,7 @@ def fuzz_login(url, username_input_field="username", password_input_field="passw
             print(f"Error password form: {payload}）: {e}")
 
 # NoSQLインジェクション
-def test_nosql_injection(url):
+def test_nosql_injection(url :str):
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
@@ -182,7 +182,7 @@ def test_nosql_injection(url):
 
 
 # CSTIテスト関数
-def test_csti(url):
+def test_csti(url: str):
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
@@ -201,7 +201,7 @@ def test_csti(url):
 
 
 # HTTP Header Injecion 
-def test_header_injection(url, headers):
+def test_header_injection(url: str, headers):
     """
     HTTPヘッダーインジェクションのテスト
     """
@@ -249,7 +249,7 @@ def test_ldap_injection(server_url: str, base_dn: str):
 
 
 
-def split_domain(target_url):
+def split_domain(target_url: str):
     # ドットを基準に分割
     parts = target_url.rsplit('.', 1)  # 右から1回だけ分割
 
@@ -260,7 +260,7 @@ def split_domain(target_url):
         return target_url, ""  # 拡張子がない場合
 
 # JSONインジェクション
-def test_json_injection(url, base_data):
+def test_json_injection(url: str, base_data: str):
     """
     JSONインジェクションのテスト
     """
@@ -287,7 +287,7 @@ def test_json_injection(url, base_data):
 
 
 #CRLFインジェクション
-def test_crlf_injection(url):
+def test_crlf_injection(url: str):
     """
     CRLFインジェクションのテスト関数
     """
@@ -305,7 +305,7 @@ def test_crlf_injection(url):
 
 
 #unicodeインジェクション
-def test_unicode_injection(url, param):
+def test_unicode_injection(url: str, param: str):
     for payload in UNICODE_PAYLOADS:
         params = {param: "admin" + payload}
         response = requests.get(url, params=params)
@@ -326,7 +326,7 @@ def test_unicode_injection(url, param):
 
 
 #XPathインジェクション検証　　
-def test_xpath_injection(url):
+def test_xpath_injection(url: str):
     for payload in XPATH_PAYLOADS:
         # 脆弱なXPathクエリ
         query = f"//user[username='{payload}']/password"
@@ -348,9 +348,8 @@ def test_xpath_injection(url):
 
         
     
-#リクエストされていない　インジェクションの仕方が謎
 #XSLTインジェクション検証
-def test_xslt_injection(url):
+def test_xslt_injection(url: str):
    for payload in XSLT_PAYLOADS:
         # XSLTのパース
         xslt_root = etree.XML(payload)
@@ -373,7 +372,7 @@ def test_xslt_injection(url):
 
 
 #XXE 検証　
-def test_xxe(url):
+def test_xxe(url: str):
     print("=== Testing XXE Payload ===")
     for payload in XXE_PAYLOADS:
         #外部エンティティを含む特別に細工されたXMLに変換
@@ -400,22 +399,37 @@ def test_xxe(url):
             print(f"[-] Failed to parse: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python fuzzing.py <URL> or python fuzzing.py <URL> <username_field>  <password_field>  username_field and password_field are parameters!")
+    if len(sys.argv) < 2:
+        print("Usage: python fuzzing.py <URL> or python fuzzing.py <URL> [username_field]  [password_field] [query_field]  You can enter username_field and password_field, query_field parameters! Defaultly set initial username password query")
         sys.exit(1)
 
     target_url = sys.argv[1]
-    username_field = sys.argv[2]
-    password_field = sys.argv[3]
+
+    #デフォルト値を設定
+    username_field = "username"
+    password_field = "password"
+    query_field = "q"
+
+    #引数が指定されていれば上書き
+    if len(sys.argv) >= 4:
+        username_field = sys.argv[2]
+        password_field = sys.argv[3]
+        query_field = sys.argv[4]
+
+    
     print(f"Target URL: {target_url}")
+    print(f"Username Field: {username_field}")
+    print(f"Password Field: {password_field}")
+    print(f"Query Field: {query_field}")
     
     print("=== XSS SQL OS Injection Test === ")
 
     print("=== Fuzzing ===")
-    fuzz(target_url, base_params={"q": "test"}, target_param="q" )
+    fuzz(target_url, base_params={query_field: "test"}, target_param=query_field )
+    print("=== Fuzzing login ===")
     fuzz_login(target_url, username_field,  password_field)
 
-    print('=== NoSQL Injection Test ===') 
+    print("=== NoSQL Injection Test ===") 
     test_nosql_injection(target_url)
 
     print("=== CSTI Test ===")
@@ -436,7 +450,7 @@ if __name__ == "__main__":
     
     print("=== JSON Injecion Test ===")
     base_data = {
-        "username": "test",
+        username_field: "test",
         "role": "user"
     }
     test_json_injection(target_url, base_data)
