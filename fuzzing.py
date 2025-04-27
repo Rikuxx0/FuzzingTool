@@ -400,7 +400,9 @@ def test_xxe(url: str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python fuzzing.py <URL> or python fuzzing.py <URL> [username_field]  [password_field] [query_field]  You can enter username_field and password_field, query_field parameters! Defaultly set initial username password query")
+        print("Usage: python fuzzing.py <URL> or python fuzzing.py <URL> [username_field]  [password_field] [query_field]  " \
+        "You can enter username_field and password_field, query_field parameters! Defaultly set initial username password query"\
+        )
         sys.exit(1)
 
     target_url = sys.argv[1]
