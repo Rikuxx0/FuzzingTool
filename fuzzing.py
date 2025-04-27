@@ -131,12 +131,12 @@ def fuzz(url: str, base_params :str, target_param: str, payloads: str = None):
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
 
-def fuzz_login(url: str, username_input_field="username", password_input_field="password", payload: str = None):
+def fuzz_login(url: str, username_field: str, password_field: str, payload: str = None):
     
     for payload in SQL_PAYLOADS:
         data = {
-            username_field: username_input_field + "=" + payload,
-            password_field: password_input_field + "=" + "dummy"
+            username_field: payload,
+            password_field: "dummy"
         }
         try:
             res = requests.post(url, data=data)
@@ -149,8 +149,8 @@ def fuzz_login(url: str, username_input_field="username", password_input_field="
 
     for payload in SQL_PAYLOADS:
         data = {
-            username_field: username_input_field + "=" + "dummy",
-            password_field: password_input_field + "=" + payload
+            username_field: "dummy",
+            password_field: payload
         }
         try:
             res = requests.post(url, data=data)
