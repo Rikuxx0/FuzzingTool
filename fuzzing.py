@@ -4,6 +4,7 @@ import sys
 from ldap3 import Server, Connection, ALL
 from lxml import etree
 
+
 # テスト用ペイロードの定義
 XSS_PAYLOADS = [
     "<script>alert('XSS');</script>",
@@ -109,7 +110,7 @@ XXE_PAYLOADS = """
 """
 
 # ファジング関数 
-def fuzz(url: str, base_params :str, target_param: str, payloads: str = None):
+def fuzz(url: str, base_params :str, target_param: str, payloads: str = None) -> str:
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
@@ -131,8 +132,7 @@ def fuzz(url: str, base_params :str, target_param: str, payloads: str = None):
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
 
-def fuzz_login(url: str, username_field: str, password_field: str, payload: str = None):
-    
+def fuzz_login(url: str, username_field: str, password_field: str, payload: str = None) -> str:
     for payload in SQL_PAYLOADS:
         data = {
             username_field: payload,
@@ -162,7 +162,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
             print(f"Error password form: {payload}）: {e}")
 
 # NoSQLインジェクション
-def test_nosql_injection(url :str):
+def test_nosql_injection(url :str) -> str:
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
@@ -182,7 +182,7 @@ def test_nosql_injection(url :str):
 
 
 # CSTIテスト関数
-def test_csti(url: str):
+def test_csti(url: str) -> str:
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
@@ -201,7 +201,7 @@ def test_csti(url: str):
 
 
 # HTTP Header Injecion 
-def test_header_injection(url: str, headers):
+def test_header_injection(url: str, headers: str) -> str:
     """
     HTTPヘッダーインジェクションのテスト
     """
@@ -226,7 +226,7 @@ def test_header_injection(url: str, headers):
 
 
 # LDAPインジェクション 最初のレスポンス内容の（いろんなインジェクションを比較するため）
-def test_ldap_injection(server_url: str, base_dn: str):
+def test_ldap_injection(server_url: str, base_dn: str) -> str:
     server = Server(server_url, get_info=ALL)
     conn = Connection(server)
     if not conn.bind():
@@ -249,7 +249,7 @@ def test_ldap_injection(server_url: str, base_dn: str):
 
 
 
-def split_domain(target_url: str):
+def split_domain(target_url: str) -> str:
     # ドットを基準に分割
     parts = target_url.rsplit('.', 1)  # 右から1回だけ分割
 
@@ -260,7 +260,7 @@ def split_domain(target_url: str):
         return target_url, ""  # 拡張子がない場合
 
 # JSONインジェクション
-def test_json_injection(url: str, base_data: str):
+def test_json_injection(url: str, base_data: str) -> str:
     """
     JSONインジェクションのテスト
     """
@@ -287,7 +287,7 @@ def test_json_injection(url: str, base_data: str):
 
 
 #CRLFインジェクション
-def test_crlf_injection(url: str):
+def test_crlf_injection(url: str) -> str:
     """
     CRLFインジェクションのテスト関数
     """
@@ -305,7 +305,7 @@ def test_crlf_injection(url: str):
 
 
 #unicodeインジェクション
-def test_unicode_injection(url: str, param: str):
+def test_unicode_injection(url: str, param: str) -> str:
     for payload in UNICODE_PAYLOADS:
         params = {param: "admin" + payload}
         response = requests.get(url, params=params)
@@ -326,7 +326,7 @@ def test_unicode_injection(url: str, param: str):
 
 
 #XPathインジェクション検証　　
-def test_xpath_injection(url: str):
+def test_xpath_injection(url: str) -> str:
     for payload in XPATH_PAYLOADS:
         # 脆弱なXPathクエリ
         query = f"//user[username='{payload}']/password"
@@ -349,7 +349,7 @@ def test_xpath_injection(url: str):
         
     
 #XSLTインジェクション検証
-def test_xslt_injection(url: str):
+def test_xslt_injection(url: str) -> str:
    for payload in XSLT_PAYLOADS:
         # XSLTのパース
         xslt_root = etree.XML(payload)
@@ -372,7 +372,7 @@ def test_xslt_injection(url: str):
 
 
 #XXE 検証　
-def test_xxe(url: str):
+def test_xxe(url: str) -> str:
     print("=== Testing XXE Payload ===")
     for payload in XXE_PAYLOADS:
         #外部エンティティを含む特別に細工されたXMLに変換
