@@ -113,7 +113,7 @@ XXE_PAYLOADS = """
 
 def show_error_contents(response_result: str) -> None:
     #エラーメッセージの抽出
-    pattern = r"(error:?.{0,100}|exception:?.{0,100}|traceback.{0,200})"
+    pattern = r"(error\s*[:=].{0,100}|exception\s*[:=].{0,100}|traceback.{0,200})"
     matches = re.findall(pattern, response_result, re.IGNORECASE)
 
     if matches:
@@ -260,25 +260,25 @@ def test_header_injection(url: str) -> None:
             headers = {
                 key: payload
             }
-
-        try:
-            response_pattern = requests.get(url, headers=headers)
-            baseline_headers_pattern = response_pattern.headers
             
-            if response_pattern.text != result or baseline_headers_pattern != baseline_headers: 
-                if response_pattern.status_code != response.status_code:
-                    print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.status_code}")
-                    show_error_contents(response_pattern)
+            try:
+                response_pattern = requests.get(url, headers=headers)
+                baseline_headers_pattern = response_pattern.headers
+                
+                if response_pattern.text != result or baseline_headers_pattern != baseline_headers: 
+                    if response_pattern.status_code != response.status_code:
+                        print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
+                        print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.status_code}")
+                        show_error_contents(response_pattern)
+                    else:
+                        print(f'Found HTTP Header Injection')
+                        print(f"Tested with payload: {payload}")
+                        print(f"Status Code: {response_pattern.status_code}")
+                        print(f"Response Headers: {response_pattern.headers}")
                 else:
-                    print(f'Found HTTP Header Injection')
-                    print(f"Tested with payload: {payload}")
-                    print(f"Status Code: {response_pattern.status_code}")
-                    print(f"Response Headers: {response_pattern.headers}")
-            else:
-                print(f'Not Found | {payload}')
-        except Exception as e:
-            print(f"Error with payload {payload}: {e}")
+                    print(f'Not Found | {payload}')
+            except Exception as e:
+                print(f"Error with payload {payload}: {e}")
 
 
 # LDAPインジェクション 厳格な区別なし
