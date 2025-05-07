@@ -110,6 +110,7 @@ XXE_PAYLOADS = """
 <foo>&xxe;</foo>
 """
 
+
 # ファジング関数 
 def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
