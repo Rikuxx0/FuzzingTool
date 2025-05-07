@@ -2,6 +2,7 @@ import requests
 import json
 import sys
 import time
+import re
 from ldap3 import Server, Connection, ALL
 from lxml import etree
 
@@ -110,8 +111,21 @@ XXE_PAYLOADS = """
 <foo>&xxe;</foo>
 """
 
+def show_error_contents(response_result: str) -> None:
+    #エラーメッセージの抽出
+    pattern = r"(error:?.{0,100}|exception:?.{0,100}|traceback.{0,200})"
+    matches = re.findall(pattern, response_result, re.IGNORECASE)
 
-# ファジング関数 
+    if matches:
+        print("[!] Error content in response:")
+        print("\n".join(f"    ↳ {m.strip()}" for m in matches))
+    else:
+        print("[!] Response error content Nothing")
+
+ 
+
+
+# ファジング関数
 def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
@@ -130,6 +144,7 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f'Found Injection')
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} ")
@@ -146,12 +161,13 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
         }
         print(f"Set Username: {payload} | Password: 'dummy' password")
         try:
-            res = requests.post(url, data=data)
-            if "invalid" not in res.text.lower():
-                if res.status_code == 200:
+            response_pattern = requests.post(url, data=data)
+            if "invalid" not in response_pattern.text.lower():
+                if response_pattern.status_code == 200:
                     print(f"Possible | username: {payload}")
                 else:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
+                    show_error_contents(response_pattern)
             else:
                 print(f"No Possible | username : {payload}")
         except Exception as e:
@@ -164,12 +180,13 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
         }
         print(f"Set Username: 'dummy' username | Password: {payload}")
         try:
-            res = requests.post(url, data=data)
-            if "invalid" not in res.text.lower():
-                if res.status_code == 200: 
+            response_pattern = requests.post(url, data=data)
+            if "invalid" not in response_pattern.text.lower():
+                if response_pattern.status_code == 200: 
                     print(f"Possible | password: {payload}")
                 else:
                    print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)") 
+                   show_error_contents(response_pattern)
             else:
                 print(f"No Possible | password: {payload}")
         except Exception as e:
@@ -191,6 +208,7 @@ def test_nosql_injection(url :str) -> None:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f'Found NoSQL Injection')
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
@@ -214,6 +232,7 @@ def test_csti(url: str) -> None:
                 if response_pattern.status_code != response.status_code :
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f'Found CSTI Injection')
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
@@ -250,6 +269,7 @@ def test_header_injection(url: str) -> None:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f'Found HTTP Header Injection')
                     print(f"Tested with payload: {payload}")
@@ -284,7 +304,7 @@ def test_ldap_injection(server_url: str, base_dn: str) -> None:
     conn.unbind()
 
 
-
+#LDAPインジェクションにおけるURLのドメイン、拡張子の分離
 def split_domain(target_url: str) -> tuple[str, str]:
     # ドットを基準に分割
     parts = target_url.rsplit('.', 1)  # 右から1回だけ分割
@@ -296,7 +316,7 @@ def split_domain(target_url: str) -> tuple[str, str]:
         return target_url, ""  # 拡張子がない場合
 
 # JSONインジェクション　
-def test_json_injection(url: str, base_data: str) -> None:
+def test_json_injection(url: str, base_data: dict[str, str]) -> None:
     headers = {
         "Content-Type": "application/json"
     }
@@ -316,6 +336,7 @@ def test_json_injection(url: str, base_data: str) -> None:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f"Potential vulnerability found with payload: {payload}\n")
                     print(f"Tested with payload: {payload}")
@@ -335,22 +356,24 @@ def test_crlf_injection(url: str) -> None:
         response = requests.get(url)
         result = response.text
         
-        
-        response_pattern = requests.get(url, params=payload)
+        try:
+            response_pattern = requests.get(url, params={"q", payload})
 
-        # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
-        if response_pattern.text != result:
-            if response_pattern.status_code != response.status_code:
-                print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+            # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
+            if response_pattern.text != result:
+                if response_pattern.status_code != response.status_code:
+                    print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
+                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
+                else:
+                    print(f"Potential CRLF Injection with payload: {payload}")
+                    print(f"Tested payload: {payload}")
+                    print(f"Status Code: {response_pattern.status_code}")
+                    print(f"Response Headers: {response_pattern.headers}")
             else:
-                print(f"Potential CRLF Injection with payload: {payload}")
-                print(f"Tested payload: {payload}")
-                print(f"Status Code: {response_pattern.status_code}")
-                print(f"Response Headers: {response_pattern.headers}")
-        else:
-            print(f"Not found {payload}")
-
+                print(f"Not found {payload}")
+        except Exception as e:
+            print(f"Error with payload {payload}: {e}")
 
 #unicodeインジェクション
 def test_unicode_injection(url: str, param: str) -> None:
@@ -367,6 +390,7 @@ def test_unicode_injection(url: str, param: str) -> None:
             if response_pattern.status_code != response.status_code:
                 print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                 print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                show_error_contents(response_pattern)
             else:
                 print(f"Potential Unicode Injection with payload: {payload}")
                 print(f"Tested with payload: {payload}")
@@ -393,6 +417,7 @@ def test_xpath_injection(url: str) -> None:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f'Found XPath Injection')
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
@@ -421,6 +446,7 @@ def test_xslt_injection(url: str) -> None:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    show_error_contents(response_pattern)
                 else:
                     print(f'Found XSLT Injection')
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
@@ -451,6 +477,7 @@ def test_xxe(url: str) -> None:
                     if response_pattern.status_code != response.status_code:
                         print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                         print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                        show_error_contents(response_pattern)
                     else:
                         print(f'Found XXE Injection')
                         print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
