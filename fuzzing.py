@@ -496,6 +496,9 @@ if __name__ == "__main__":
 
     print("=== Fuzzing ===")
     fuzz(target_url, base_params={query_field: "test"}, target_param=query_field )
+
+    time.sleep(2)
+
     print("=== Fuzzing login ===")
     fuzz_login(target_url, username_field,  password_field)
 
@@ -509,6 +512,8 @@ if __name__ == "__main__":
     headers = {"User-Agent": "test"}  
     test_header_injection(target_url, headers)
     
+    time.sleep(2)
+
     print("=== LDAP Injection ===") 
     if "ldap://" in target_url:
         print("contain 'ldap://' ")  
@@ -531,6 +536,8 @@ if __name__ == "__main__":
     print("=== Unicode Injection Test ===")
     test_unicode_injection(target_url) 
     
+    time.sleep(2)
+
     print("=== XPath Injection Test ===") 
     test_xpath_injection(target_url)
 
