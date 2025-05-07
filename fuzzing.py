@@ -110,7 +110,7 @@ XXE_PAYLOADS = """
 """
 
 # ファジング関数 
-def fuzz(url: str, base_params :str, target_param: str, payloads: str = None) -> str:
+def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
@@ -122,7 +122,7 @@ def fuzz(url: str, base_params :str, target_param: str, payloads: str = None) ->
         test_params = base_params.copy()
         test_params[target_param] = payload
         try:
-            response_pattern = requests.get(url, q=test_params)
+            response_pattern = requests.get(url, params=test_params)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -136,7 +136,7 @@ def fuzz(url: str, base_params :str, target_param: str, payloads: str = None) ->
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
 
-def fuzz_login(url: str, username_field: str, password_field: str, payload: str = None) -> str:
+def fuzz_login(url: str, username_field: str, password_field: str, payload: str = None) -> None:
     for payload in SQL_PAYLOADS:
         data = {
             username_field: payload,
@@ -174,7 +174,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
             print(f"Error password form: {payload}）: {e}")
 
 # NoSQLインジェクション
-def test_nosql_injection(url :str) -> str:
+def test_nosql_injection(url :str) -> None:
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
@@ -182,7 +182,8 @@ def test_nosql_injection(url :str) -> str:
     headers = {'Content-Type': 'application/json'}
     for payload in NO_SQL_PAYLOADS:
         try:
-            response_pattern = requests.post(url, json=payload, headers=headers)
+            payload_json = json.loads(payload)
+            response_pattern = requests.post(url, json=payload_json, headers=headers)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -198,7 +199,7 @@ def test_nosql_injection(url :str) -> str:
 
 
 # CSTIテスト関数
-def test_csti(url: str) -> str:
+def test_csti(url: str) -> None:
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
@@ -206,7 +207,7 @@ def test_csti(url: str) -> str:
     CSTI_PAYLOADS = ["${7*7}"]
     for payload in CSTI_PAYLOADS:
         try:
-            response_pattern = requests.get(url, q={"name": payload})
+            response_pattern = requests.get(url, params={"name": payload})
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code :
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
@@ -221,15 +222,17 @@ def test_csti(url: str) -> str:
 
 
 # HTTP Header Injecion 
-def test_header_injection(url: str, headers: str) -> str:
+def test_header_injection(url: str) -> None:
     #比較用のレスポンステキスト
     response = requests.get(url)
     result = response.text
 
     for payload in HEADER_PAYLOADS:
-        test_headers = {key: payload for key in headers}
+        headers = {
+            "Injected-Header": payload
+        }
         try:
-            response_pattern = requests.get(url, headers=test_headers)
+            response_pattern = requests.get(url, headers=headers)
             
             if response_pattern.text != result: 
                 if response_pattern.status_code != response.status_code:
@@ -247,7 +250,7 @@ def test_header_injection(url: str, headers: str) -> str:
 
 
 # LDAPインジェクション 厳格な区別なし
-def test_ldap_injection(server_url: str, base_dn: str) -> str:
+def test_ldap_injection(server_url: str, base_dn: str) -> None:
     server = Server(server_url, get_info=ALL)
     conn = Connection(server)
     if not conn.bind():
@@ -270,7 +273,7 @@ def test_ldap_injection(server_url: str, base_dn: str) -> str:
 
 
 
-def split_domain(target_url: str) -> str:
+def split_domain(target_url: str) -> tuple[str, str]:
     # ドットを基準に分割
     parts = target_url.rsplit('.', 1)  # 右から1回だけ分割
 
@@ -281,7 +284,7 @@ def split_domain(target_url: str) -> str:
         return target_url, ""  # 拡張子がない場合
 
 # JSONインジェクション　キープ
-def test_json_injection(url: str, base_data: str) -> str:
+def test_json_injection(url: str, base_data: str) -> None:
     headers = {
         "Content-Type": "application/json"
     }
@@ -313,7 +316,7 @@ def test_json_injection(url: str, base_data: str) -> str:
 
 
 #CRLFインジェクション
-def test_crlf_injection(url: str) -> str:
+def test_crlf_injection(url: str) -> None:
     for payload in CRLF_PAYLOADS:
         
         #比較用のレスポンステキスト
@@ -321,7 +324,7 @@ def test_crlf_injection(url: str) -> str:
         result = response.text
         
         
-        response_pattern = requests.get(url, q=payload)
+        response_pattern = requests.get(url, params=payload)
 
         # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
         if response_pattern.text != result:
@@ -338,7 +341,7 @@ def test_crlf_injection(url: str) -> str:
 
 
 #unicodeインジェクション
-def test_unicode_injection(url: str, param: str) -> str:
+def test_unicode_injection(url: str, param: str) -> None:
     for payload in UNICODE_PAYLOADS:
         
         #比較用のレスポンステキスト
@@ -346,7 +349,7 @@ def test_unicode_injection(url: str, param: str) -> str:
         result = response.text
         
         params = {param: "admin" + payload}
-        response_pattern = requests.get(url, q=params)
+        response_pattern = requests.get(url, params=params)
         
         if response_pattern.text != result:
             if response_pattern.status_code != response.status_code:
@@ -362,7 +365,7 @@ def test_unicode_injection(url: str, param: str) -> str:
 
 
 #XPathインジェクション検証　　
-def test_xpath_injection(url: str) -> str:
+def test_xpath_injection(url: str) -> None:
     for payload in XPATH_PAYLOADS:
         # 脆弱なXPathクエリ
         query = f"//user[username='{payload}']/password"
@@ -372,7 +375,7 @@ def test_xpath_injection(url: str) -> str:
         result = response.text
 
         try:
-            response_pattern = requests.get(url, q=query,  headers={'Content-Type': 'application/xml'})
+            response_pattern = requests.get(url, params=query,  headers={'Content-Type': 'application/xml'})
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -389,7 +392,7 @@ def test_xpath_injection(url: str) -> str:
         
     
 #XSLTインジェクション検証
-def test_xslt_injection(url: str) -> str:
+def test_xslt_injection(url: str) -> None:
    for payload in XSLT_PAYLOADS:
         # XSLTのパース
         xslt_root = etree.XML(payload)
@@ -416,7 +419,7 @@ def test_xslt_injection(url: str) -> str:
 
 
 #XXE 検証　
-def test_xxe(url: str) -> str:
+def test_xxe(url: str) -> None:
     print("=== Testing XXE Payload ===")
     for payload in XXE_PAYLOADS:
         #外部エンティティを含む特別に細工されたXMLに変換
