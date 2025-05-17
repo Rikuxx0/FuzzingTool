@@ -2,9 +2,11 @@ import requests
 import json
 import sys
 import time
-import re
+import datetime
 from ldap3 import Server, Connection, ALL
 from lxml import etree
+from fuzz_logger import FuzzLogger, log_result, save
+from error_utils import show_error_contents
 
 
 # テスト用ペイロードの定義
@@ -111,16 +113,6 @@ XXE_PAYLOADS = """
 <foo>&xxe;</foo>
 """
 
-def show_error_contents(response_result: str) -> None:
-    #エラーメッセージの抽出
-    pattern = r"(error\s*[:=].{0,100}|exception\s*[:=].{0,100}|traceback.{0,200})"
-    matches = re.findall(pattern, response_result, re.IGNORECASE)
-
-    if matches:
-        print("[!] Error content in response:")
-        print("\n".join(f"    ↳ {m.strip()}" for m in matches))
-    else:
-        print("[!] Response error content Nothing")
 
  
 
@@ -130,9 +122,17 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
+    # ロガー初期化(本日日付でログファイルを生成)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
+
     #比較用のレスポンステキスト
-    response = requests.get(url, params=base_params)
-    result = response.text
+    try:
+        response = requests.get(url, params=base_params)
+        result = response.text
+    except Exception as e:
+        print(f"[Error] Failed to fetch baseline: {e}")
+        return
 
     for payload in payloads:
         test_params = base_params.copy()
@@ -140,19 +140,52 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
         try:
             response_pattern = requests.get(url, params=test_params)
             
+            
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
-                    show_error_contents(response_pattern)
+                    error_info = show_error_contents(response_pattern.text)
+                    logger.log_result(
+                        target_url=url,
+                        payload=payload,
+                        response_code=response_pattern.status_code,
+                        response_body=response_pattern.text,
+                        injection_detected=False,
+                        fuzzing_results="Status mismatch or WAF triggered",
+                        error_contents=error_info
+                    )
                 else:
                     print(f'Found Injection')
                     print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} ")
+                    logger.log_result(
+                        target_url=url,
+                        payload=payload,
+                        response_code=response_pattern.status_code,
+                        response_body=response_pattern.text,
+                        injection_detected=True,
+                        fuzzing_results="Found Injection",
+                        error_contents=None
+                    )
             else:
                 print(f'Not Found | {payload}')
+
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
+            logger.log_result(
+                target_url=url,
+                payload=payload,
+                response_code=None,
+                response_body=str(e),
+                injection_detected=False,
+                fuzzing_results="Request exception occurred",
+                error_contents=[str(e)]
+            )
 
+    logger.save() # 他の関数にも反映する
+
+        
+# ログインフォームのためのファジング関数
 def fuzz_login(url: str, username_field: str, password_field: str, payload: str = None) -> None:
     for payload in SQL_PAYLOADS:
         data = {
