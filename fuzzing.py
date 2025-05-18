@@ -3,10 +3,9 @@ import json
 import sys
 import time
 import datetime
-from typing import List
 from ldap3 import Server, Connection, ALL
 from lxml import etree
-from fuzz_logger import FuzzLogger, log_result, save
+from fuzz_logger import FuzzLogger
 from error_utils import show_error_contents
 
 
