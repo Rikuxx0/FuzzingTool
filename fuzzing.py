@@ -114,17 +114,15 @@ XXE_PAYLOADS = """
 """
 
 
- 
+# ロガー初期化(本日日付でログファイルを生成)
+today_str = datetime.now().strftime("%Y-%m-%d")
+logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
 
 
 # ファジング関数
 def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
-
-    # ロガー初期化(本日日付でログファイルを生成)
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
 
     #比較用のレスポンステキスト
     try:
