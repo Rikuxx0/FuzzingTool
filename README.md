@@ -32,7 +32,9 @@ pip install -r requirements.txt
 ## Usage
 Run the script with the target URL as an argument:
 ```bash
+
 python fuzzing.py <URL> or python fuzzing.py <URL> [username_field]  [password_field] [query_field]
+
 ```
 
 ### Example
