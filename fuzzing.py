@@ -181,7 +181,7 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
                 error_contents=[str(e)]
             )
 
-    logger.save()
+        logger.save()
 
         
 # ログインフォームのためのファジング関数
@@ -514,10 +514,11 @@ def test_ldap_injection(server_url: str, base_dn: str) -> None:
                     fuzzing_results="Request exception occurred",
                     error_contents=[str(e)]
                 )
+        logger.save()
+
     conn.unbind()
 
-    logger.save()
-
+    
 
 #LDAPインジェクションにおけるURLのドメイン、拡張子の分離
 def split_domain(target_url: str) -> tuple[str, str]:
@@ -655,7 +656,7 @@ def test_crlf_injection(url: str) -> None:
                     error_contents=[str(e)]
                 )
             
-    logger.save()
+        logger.save()
 
 #unicodeインジェクション
 def test_unicode_injection(url: str, param: str) -> None:
@@ -775,7 +776,7 @@ def test_xpath_injection(url: str) -> None:
                         error_contents=[str(e)]
                     )
 
-    logger.save()
+        logger.save()
         
     
 #XSLTインジェクション検証
@@ -898,7 +899,7 @@ def test_xxe(url: str) -> None:
                 error_contents=[str(e)]
             )
 
-    logger.save()
+        logger.save()
         
 
 
@@ -986,5 +987,4 @@ if __name__ == "__main__":
     print("=== XXE Test ===") 
     test_xxe(target_url)
     
-
     print("Finish check!")
