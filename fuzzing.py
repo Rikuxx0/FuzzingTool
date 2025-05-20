@@ -182,7 +182,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
                 error_contents=[str(e)]
             )
 
-        logger.save()
+    logger.save()
 
         
 # ログインフォームのためのファジング関数
@@ -279,7 +279,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                 error_contents=[str(e)]
             )
 
-        logger.save()
+    logger.save()
 
 
 # NoSQLインジェクション
@@ -340,7 +340,7 @@ def test_nosql_injection(url :str) -> None:
                 error_contents=[str(e)]
             )
 
-        logger.save()
+    logger.save()
 
 # CSTIテスト関数
 def test_csti(url: str) -> None:
@@ -396,7 +396,7 @@ def test_csti(url: str) -> None:
                 error_contents=[str(e)]
             )
 
-        logger.save() 
+    logger.save() 
 
 
 # HTTP Header Injecion 
@@ -467,7 +467,7 @@ def test_header_injection(url: str) -> None:
                     error_contents=[str(e)]
                 )
 
-        logger.save() 
+    logger.save() 
 
 # LDAPインジェクション
 def test_ldap_injection(server_url: str, base_dn: str) -> None:
@@ -515,7 +515,7 @@ def test_ldap_injection(server_url: str, base_dn: str) -> None:
                     fuzzing_results="LDAP Test: Request exception occurred",
                     error_contents=[str(e)]
                 )
-        logger.save()
+    logger.save()
 
     conn.unbind()
 
@@ -597,7 +597,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
                     error_contents=[str(e)]
                 )
             
-        logger.save()
+    logger.save()
             
 
 #CRLFインジェクション
@@ -657,7 +657,7 @@ def test_crlf_injection(url: str) -> None:
                     error_contents=[str(e)]
                 )
             
-        logger.save()
+    logger.save()
 
 #unicodeインジェクション
 def test_unicode_injection(url: str, param: str) -> None:
@@ -717,7 +717,7 @@ def test_unicode_injection(url: str, param: str) -> None:
                     error_contents=[str(e)]
                 )
             
-        logger.save()
+    logger.save()
 
 #XPathインジェクション検証　　
 def test_xpath_injection(url: str) -> None:
@@ -779,24 +779,25 @@ def test_xpath_injection(url: str) -> None:
                         error_contents=[str(e)]
                     )
 
-        logger.save()
+    logger.save()
         
     
 #XSLTインジェクション検証
 def test_xslt_injection(url: str) -> None:
-   for payload in XSLT_PAYLOADS:
+   #比較用のレスポンステキスト
+    try:
+        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
+        result = response.text
+    except Exception as e:
+        print(f"[Error] Failed to fetch baseline: {e}")
+        return
+    
+    for payload in XSLT_PAYLOADS:
         # XSLTのパース
         xslt_root = etree.XML(payload.lstrip())
         xslt_doc = etree.XSLT(xslt_root)
-            
-        #比較用のレスポンステキスト
-        try:
-            response = requests.get(url,  headers={'Content-Type': 'application/xml'})
-            result = response.text
-        except Exception as e:
-            print(f"[Error] Failed to fetch baseline: {e}")
-            return
 
+    
         try:
             response_pattern = requests.get(url, xslt_doc, headers={'Content-Type': 'application/xml'})
             
@@ -839,7 +840,7 @@ def test_xslt_injection(url: str) -> None:
                     fuzzing_results="XSLT Test: Request exception occurred",
                     error_contents=[str(e)]
             )
-        logger.save()
+    logger.save()
     
 
 #XXE 検証　
@@ -903,7 +904,7 @@ def test_xxe(url: str) -> None:
                 error_contents=[str(e)]
             )
 
-        logger.save()
+    logger.save()
         
 
 if __name__ == "__main__":
