@@ -18,10 +18,11 @@ This tool is a Python-based script designed for testing various injection vulner
 ## Requirements
 - Python 3.x
 - Libraries:
-  - `requests`
-  - `json`
-  - `ldap3`
-  - `lxml`
+  - requests
+  - json
+  - ldap3 
+  - lxml
+  
 
 Install the required dependencies using:
 ```bash
