@@ -3,6 +3,7 @@ import json
 import sys
 import time
 import datetime
+from typing import Dict
 from ldap3 import Server, Connection, ALL
 from lxml import etree
 from fuzz_logger import FuzzLogger
@@ -122,7 +123,7 @@ logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
 
 
 # ファジング関数
-def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
+def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
@@ -227,7 +228,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_results="Fuzz Login Username: Request exception occurred",
+                fuzzing_results="Fuzz Login Username: Request exception occurred",
                 error_contents=[str(e)]
             )
 
@@ -611,7 +612,7 @@ def test_crlf_injection(url: str) -> None:
     
     for payload in CRLF_PAYLOADS:
         try:
-            response_pattern = requests.get(url, params={"q", payload})
+            response_pattern = requests.get(url, params={"q": payload})
 
             # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
             if response_pattern.text != result:
@@ -905,9 +906,6 @@ def test_xxe(url: str) -> None:
         logger.save()
         
 
-
-
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python fuzzing.py <URL> or python fuzzing.py <URL> [username_field]  [password_field] [query_field]  " \
@@ -928,7 +926,6 @@ if __name__ == "__main__":
         password_field = sys.argv[3]
         query_field = sys.argv[4]
 
-    
     print(f"Target URL: {target_url}")
     print(f"Username Field: {username_field}")
     print(f"Password Field: {password_field}")
