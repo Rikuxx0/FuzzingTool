@@ -1,6 +1,6 @@
 # InjectFuzzingTool
 
-This tool is a Python-based script designed for testing various injection vulnerabilities in web applications. It includes modules for testing XSS, SQL injection, NoSQL injection, OS command injection, CRLF injection, LDAP injection, XPath injection, XSLT injection, XXE vulnerabilities, and more.
+This tool is a Python-based script designed for testing various injection vulnerabilities in web applications. It includes modules for testing XSS, SQL injection, NoSQL injection, OS command injection, CRLF injection, LDAP injection, XPath injection, XSLT injection, XXE vulnerabilities, and more. This tool is based on all injection vulnerabilities in hacktricks.
 
 ## Features
 - **Cross-Site Scripting (XSS)**
