@@ -944,11 +944,17 @@ if __name__ == "__main__":
     print("=== Fuzzing login ===")
     fuzz_login(target_url, username_field,  password_field)
 
+    time.sleep(2)
+
     print("=== NoSQL Injection Test ===") 
     test_nosql_injection(target_url)
 
+    time.sleep(2)
+
     print("=== CSTI Test ===")
     test_csti(target_url)
+
+    time.sleep(2)
 
     print("=== HTTP Header Injection Test ===")
     test_header_injection(target_url)
@@ -964,6 +970,8 @@ if __name__ == "__main__":
     else:
         print("This url do not contain ldap")
     
+    time.sleep(2)
+
     print("=== JSON Injecion Test ===")
     base_data = {
         username_field: "test",
@@ -971,8 +979,12 @@ if __name__ == "__main__":
     }
     test_json_injection(target_url, base_data)
 
+    time.sleep(2)
+
     print("=== CSLF Injection Test ===")
     test_crlf_injection(target_url)
+
+    time.sleep(2)
 
     print("=== Unicode Injection Test ===")
     test_unicode_injection(target_url, query_field) 
@@ -982,8 +994,12 @@ if __name__ == "__main__":
     print("=== XPath Injection Test ===") 
     test_xpath_injection(target_url)
 
+    time.sleep(2)
+
     print("=== XSLT Injection Test ===") 
     test_xslt_injection(target_url)
+
+    time.sleep(2)
 
     print("=== XXE Test ===") 
     test_xxe(target_url)
