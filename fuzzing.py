@@ -126,7 +126,6 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
-
     #比較用のレスポンステキスト
     try:
         response = requests.get(url, params=base_params)
@@ -601,16 +600,15 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
 
 #CRLFインジェクション
 def test_crlf_injection(url: str) -> None:
+    #比較用のレスポンステキスト
+    try:
+        response = requests.get(url)
+        result = response.text
+    except Exception as e:
+        print(f"[Error] Failed to fetch baseline: {e}")
+        return
+    
     for payload in CRLF_PAYLOADS:
-        
-        #比較用のレスポンステキスト
-        try:
-            response = requests.get(url)
-            result = response.text
-        except Exception as e:
-            print(f"[Error] Failed to fetch baseline: {e}")
-            return
-
         try:
             response_pattern = requests.get(url, params={"q", payload})
 
@@ -657,20 +655,19 @@ def test_crlf_injection(url: str) -> None:
                     error_contents=[str(e)]
                 )
             
-        logger.save()
+    logger.save()
 
 #unicodeインジェクション
 def test_unicode_injection(url: str, param: str) -> None:
+    #比較用のレスポンステキスト
+    try:
+        response = requests.get(url)
+        result = response.text
+    except Exception as e:
+        print(f"[Error] Failed to fetch baseline: {e}")
+        return
+    
     for payload in UNICODE_PAYLOADS:
-        
-        #比較用のレスポンステキスト
-        try:
-            response = requests.get(url)
-            result = response.text
-        except Exception as e:
-            print(f"[Error] Failed to fetch baseline: {e}")
-            return
-
         try:
             params = {param: "admin" + payload}
             response_pattern = requests.get(url, params=params)
@@ -722,18 +719,18 @@ def test_unicode_injection(url: str, param: str) -> None:
 
 #XPathインジェクション検証　　
 def test_xpath_injection(url: str) -> None:
+    # 脆弱なXPathクエリ
+    query = f"//user[username='{payload}']/password"
+    
+    #比較用のレスポンステキスト
+    try:
+        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
+        result = response.text
+    except Exception as e:
+        print(f"[Error] Failed to fetch baseline: {e}")
+        return
+    
     for payload in XPATH_PAYLOADS:
-        # 脆弱なXPathクエリ
-        query = f"//user[username='{payload}']/password"
-
-        try:
-            #比較用のレスポンステキスト
-            response = requests.get(url,  headers={'Content-Type': 'application/xml'})
-            result = response.text
-        except Exception as e:
-            print(f"[Error] Failed to fetch baseline: {e}")
-            return
-
         try:
             response_pattern = requests.get(url, params=query,  headers={'Content-Type': 'application/xml'})
             
@@ -778,7 +775,7 @@ def test_xpath_injection(url: str) -> None:
                         error_contents=[str(e)]
                     )
 
-        logger.save()
+    logger.save()
         
     
 #XSLTインジェクション検証
@@ -843,7 +840,6 @@ def test_xslt_injection(url: str) -> None:
 
 #XXE 検証　
 def test_xxe(url: str) -> None:
-    
     # ベースラインレスポンスの取得(空のXML送信)
     try:
         baseline_xml = "<root>test</root>"
@@ -857,8 +853,7 @@ def test_xxe(url: str) -> None:
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
         return
-
-
+        
     for payload in XXE_PAYLOADS:
         try:
             response_pattern = requests.post(url, data=payload.encode('utf-8'),  headers={'Content-Type': 'application/xml'}, timeout=10 )
@@ -903,7 +898,7 @@ def test_xxe(url: str) -> None:
                 error_contents=[str(e)]
             )
 
-        logger.save()
+    logger.save()
         
 
 
