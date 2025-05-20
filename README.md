@@ -28,7 +28,6 @@ Install the required dependencies using:
 ```bash
 pip install -r requirements.txt
 ```
-And, in XXE_checker, external entity references is turned off at first,so Please change from false to true
 
 ## Usage
 Run the script with the target URL as an argument:
