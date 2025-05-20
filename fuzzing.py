@@ -119,6 +119,8 @@ today_str = datetime.datetime.now().strftime("%Y-%m-%d")
 logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
 
 
+
+
 # ファジング関数
 def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
@@ -180,7 +182,7 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
                 error_contents=[str(e)]
             )
 
-        logger.save() 
+    logger.save()
 
         
 # ログインフォームのためのファジング関数
@@ -783,7 +785,7 @@ def test_xpath_injection(url: str) -> None:
 def test_xslt_injection(url: str) -> None:
    for payload in XSLT_PAYLOADS:
         # XSLTのパース
-        xslt_root = etree.XML(payload)
+        xslt_root = etree.XML(payload.lstrip())
         xslt_doc = etree.XSLT(xslt_root)
             
         #比較用のレスポンステキスト
@@ -952,8 +954,7 @@ if __name__ == "__main__":
     test_csti(target_url)
 
     print("=== HTTP Header Injection Test ===")
-    headers = {"User-Agent": "test"}  
-    test_header_injection(target_url, headers)
+    test_header_injection(target_url)
     
     time.sleep(2)
 
@@ -977,7 +978,7 @@ if __name__ == "__main__":
     test_crlf_injection(target_url)
 
     print("=== Unicode Injection Test ===")
-    test_unicode_injection(target_url) 
+    test_unicode_injection(target_url, query_field) 
     
     time.sleep(2)
 
