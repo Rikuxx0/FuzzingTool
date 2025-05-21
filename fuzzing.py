@@ -121,7 +121,6 @@ logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
 
 
 
-
 # ファジング関数
 def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
@@ -131,20 +130,23 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
     try:
         response = requests.get(url, params=base_params)
         result = response.text
+        
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
         return
 
     for payload in payloads:
+        
         test_params = base_params.copy()
         test_params[target_param] = payload
+
         try:
-            response_pattern = requests.get(url, params=test_params)
+            response_pattern = requests.post(url, params=test_params)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern.text)
                     logger.log_result(
                         target_url=url,
@@ -158,7 +160,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
                     )
                 else:
                     print(f'Found Injection')
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} ")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code} ")
                     logger.log_result(
                         target_url=url,
                         payload=payload,
@@ -171,6 +173,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
                     )
             else:
                 print(f'Not Found | {payload}')
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
 
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
@@ -296,7 +299,7 @@ def test_nosql_injection(url :str) -> None:
     
     #比較用のレスポンステキスト
     try:
-        response = requests.get(url)
+        response = requests.post(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -312,7 +315,7 @@ def test_nosql_injection(url :str) -> None:
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                         target_url=url,
@@ -326,7 +329,7 @@ def test_nosql_injection(url :str) -> None:
                     )
                 else:
                     print(f'Found NoSQL Injection')
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                         target_url=url,
                         payload=payload,
@@ -339,6 +342,7 @@ def test_nosql_injection(url :str) -> None:
                     )
             else:
                 print(f'Not Found | {payload}')
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error: {e}")
             logger.log_result(
@@ -358,7 +362,7 @@ def test_nosql_injection(url :str) -> None:
 def test_csti(url: str) -> None:
     #比較用のレスポンステキスト
     try:
-        response = requests.get(url)
+        response = requests.post(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -367,11 +371,11 @@ def test_csti(url: str) -> None:
     CSTI_PAYLOADS = ["${7*7}"]
     for payload in CSTI_PAYLOADS:
         try:
-            response_pattern = requests.get(url, params={"name": payload})
+            response_pattern = requests.post(url, params={"name": payload})
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code :
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                         target_url=url,
@@ -385,7 +389,7 @@ def test_csti(url: str) -> None:
                     )
                 else:
                     print(f'Found CSTI Injection')
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                         target_url=url,
                         payload=payload,
@@ -398,6 +402,7 @@ def test_csti(url: str) -> None:
                     )
             else:
                 print(f'Not Found | {payload}')
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error: {e}")
             logger.log_result(
@@ -423,7 +428,7 @@ def test_header_injection(url: str) -> None:
     
     # 比較用のレスポンステキスト
     try:
-        response = requests.get(url)
+        response = requests.post(url)
         result = response.text
         baseline_headers = response.headers #ヘッダー破損の変化も含める
     except Exception as e:
@@ -437,13 +442,15 @@ def test_header_injection(url: str) -> None:
             }
             
             try:
-                response_pattern = requests.get(url, headers=headers)
+                response_pattern = requests.post(url, headers=headers)
                 baseline_headers_pattern = response_pattern.headers
                 
                 if response_pattern.text != result or baseline_headers_pattern != baseline_headers: 
                     if response_pattern.status_code != response.status_code:
                         print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                        print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.status_code}")
+                        print(f"Tested with payload: {payload}")
+                        print(f"Status Code: {response_pattern.status_code}")
+                        print(f"Response Headers: {response_pattern.headers}")
                         error_info = show_error_contents(response_pattern)
                         logger.log_result(
                             target_url=url,
@@ -472,6 +479,9 @@ def test_header_injection(url: str) -> None:
                         )
                 else:
                     print(f'Not Found | {payload}')
+                    print(f"Tested with payload: {payload}")
+                    print(f"Status Code: {response_pattern.status_code}")
+                    print(f"Response Headers: {response_pattern.headers}")
             except Exception as e:
                 print(f"Error with payload {payload}: {e}")
                 logger.log_result(
@@ -563,7 +573,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
 
     #比較用のレスポンステキスト
     try:
-        response = requests.get(url)
+        response = requests.post(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -579,7 +589,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                             target_url=url,
@@ -593,9 +603,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
                         )
                 else:
                     print(f"Potential vulnerability found with payload: {payload}\n")
-                    print(f"Tested with payload: {payload}")
-                    print(f"Status Code: {response_pattern.status_code}")
-                    print(f"Response Text: {response_pattern.text}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                             target_url=url,
                             payload=payload,
@@ -608,6 +616,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
                         )
             else:
                 print(f"Not found | {payload}")
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
             logger.log_result(
@@ -628,7 +637,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
 def test_crlf_injection(url: str) -> None:
     #比較用のレスポンステキスト
     try:
-        response = requests.get(url)
+        response = requests.post(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -636,13 +645,13 @@ def test_crlf_injection(url: str) -> None:
     
     for payload in CRLF_PAYLOADS:
         try:
-            response_pattern = requests.get(url, params={"q": payload})
+            response_pattern = requests.post(url, params={"q": payload})
 
             # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.headers}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                             target_url=url,
@@ -656,9 +665,7 @@ def test_crlf_injection(url: str) -> None:
                         )
                 else:
                     print(f"Potential CRLF Injection with payload: {payload}")
-                    print(f"Tested payload: {payload}")
-                    print(f"Status Code: {response_pattern.status_code}")
-                    print(f"Response Headers: {response_pattern.headers}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.headers}")
                     logger.log_result(
                             target_url=url,
                             payload=payload,
@@ -671,6 +678,7 @@ def test_crlf_injection(url: str) -> None:
                         )
             else:
                 print(f"Not found {payload}")
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code} | Response Headers: {response_pattern.headers}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
             logger.log_result(
@@ -690,7 +698,7 @@ def test_crlf_injection(url: str) -> None:
 def test_unicode_injection(url: str, param: str) -> None:
     #比較用のレスポンステキスト
     try:
-        response = requests.get(url)
+        response = requests.post(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -699,12 +707,12 @@ def test_unicode_injection(url: str, param: str) -> None:
     for payload in UNICODE_PAYLOADS:
         try:
             params = {param: "admin" + payload}
-            response_pattern = requests.get(url, params=params)
+            response_pattern = requests.post(url, params=params)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                                 target_url=url,
@@ -719,9 +727,7 @@ def test_unicode_injection(url: str, param: str) -> None:
 
                 else:
                     print(f"Potential Unicode Injection with payload: {payload}")
-                    print(f"Tested with payload: {payload}")
-                    print(f"Status Code: {response_pattern.status_code}")
-                    print(f"Response Text: {response_pattern.text}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                                 target_url=url,
                                 payload=payload,
@@ -734,6 +740,7 @@ def test_unicode_injection(url: str, param: str) -> None:
                             )
             else:
                 print(f"Not found {payload}")
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}")
             logger.log_result(
@@ -755,7 +762,7 @@ def test_xpath_injection(url: str) -> None:
     
     #比較用のレスポンステキスト
     try:
-        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
+        response = requests.post(url,  headers={'Content-Type': 'application/xml'})
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -766,12 +773,12 @@ def test_xpath_injection(url: str) -> None:
         query = f"//user[username='{payload}']/password"
 
         try:
-            response_pattern = requests.get(url, params=query,  headers={'Content-Type': 'application/xml'})
+            response_pattern = requests.post(url, params=query,  headers={'Content-Type': 'application/xml'})
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                                 target_url=url,
@@ -786,7 +793,7 @@ def test_xpath_injection(url: str) -> None:
 
                 else:
                     print(f'Found XPath Injection')
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                                 target_url=url,
                                 payload=payload,
@@ -799,6 +806,7 @@ def test_xpath_injection(url: str) -> None:
                             )
             else:
                 print(f'Not Found | {payload}')
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
             logger.log_result(
@@ -819,7 +827,7 @@ def test_xpath_injection(url: str) -> None:
 def test_xslt_injection(url: str) -> None:
    #比較用のレスポンステキスト
     try:
-        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
+        response = requests.post(url,  headers={'Content-Type': 'application/xml'})
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -832,12 +840,12 @@ def test_xslt_injection(url: str) -> None:
 
     
         try:
-            response_pattern = requests.get(url, xslt_doc, headers={'Content-Type': 'application/xml'})
+            response_pattern = requests.post(url, xslt_doc, headers={'Content-Type': 'application/xml'})
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                                 target_url=url,
@@ -851,7 +859,7 @@ def test_xslt_injection(url: str) -> None:
                             )
                 else:
                     print(f'Found XSLT Injection')
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                                 target_url=url,
                                 payload=payload,
@@ -864,6 +872,7 @@ def test_xslt_injection(url: str) -> None:
                             )
             else:
                 print(f'Not Found | {payload}')
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
             logger.log_result(
@@ -903,7 +912,7 @@ def test_xxe(url: str) -> None:
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     error_info = show_error_contents(response_pattern)
                     logger.log_result(
                             target_url=url,
@@ -917,7 +926,7 @@ def test_xxe(url: str) -> None:
                         )
                 else:
                     print(f'Found XXE Injection')
-                    print(f"Tested payload: {payload}| Response Data {response_pattern.text} | Status Code: {response_pattern.status_code}")
+                    print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
                     logger.log_result(
                             target_url=url,
                             payload=payload,
@@ -930,6 +939,7 @@ def test_xxe(url: str) -> None:
                         )
             else:
                 print(f'Not Found | {payload}')
+                print(f"Tested payload: {payload} | Status Code: {response_pattern.status_code}")
         except Exception as e:
             print(f"Error with payload {payload}: {e}") 
             logger.log_result(
