@@ -151,7 +151,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="OS_or_XSS_Injection",
+                        injection_type="OS_or_XSS_Injection",
                         injection_detected=False,
                         fuzzing_results="Fuzzing Test: Status mismatch or WAF triggered",
                         error_contents=error_info
@@ -164,7 +164,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="OS_or_XSS_Injection",
+                        injection_type="OS_or_XSS_Injection",
                         injection_detected=True,
                         fuzzing_results="Found Injection",
                         error_contents=None
@@ -179,7 +179,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_label="OS_or_XSS_Injection",
+                injection_type="OS_or_XSS_Injection",
                 injection_detected=False,
                 fuzzing_results="Fuzzing Test: Request exception occurred",
                 error_contents=[str(e)]
@@ -206,7 +206,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="Fuzzing_username",
+                        injection_type="Fuzzing_username",
                         injection_detected=True,
                         fuzzing_results="Found Injection",
                         error_contents=None
@@ -219,7 +219,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="Fuzzing_username",
+                        injection_type="Fuzzing_username",
                         injection_detected=False,
                         fuzzing_results=" Fuzz Login Username: Status mismatch or WAF triggered",
                         error_contents=error_info
@@ -233,7 +233,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_label="Fuzzing_username",
+                injection_type="Fuzzing_username",
                 fuzzing_results="Fuzz Login Username: Request exception occurred",
                 error_contents=[str(e)]
             )
@@ -256,7 +256,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="Fuzzing_password",
+                        injection_type="Fuzzing_password",
                         injection_detected=True,
                         fuzzing_results="Found Injection",
                         error_contents=None
@@ -269,7 +269,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="Fuzzing_password",
+                        injection_type="Fuzzing_password",
                         injection_detected=False,
                         fuzzing_results="Fuzz Login Password: Status mismatch or WAF triggered",
                         error_contents=error_info
@@ -283,7 +283,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_label="Fuzzing_password",
+                injection_type="Fuzzing_password",
                 injection_results="Fuzz Login Password: Request exception occurred",
                 error_contents=[str(e)]
             )
@@ -319,7 +319,7 @@ def test_nosql_injection(url :str) -> None:
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="NoSQL_Injection",
+                        injection_type="NoSQL_Injection",
                         injection_detected=False,
                         fuzzing_results="NoSQL Test: Status mismatch or WAF triggered",
                         error_contents=error_info
@@ -332,7 +332,7 @@ def test_nosql_injection(url :str) -> None:
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="NoSQL_Injection",
+                        injection_type="NoSQL_Injection",
                         injection_detected=True,
                         fuzzing_results="Found Injection",
                         error_contents=None
@@ -346,7 +346,7 @@ def test_nosql_injection(url :str) -> None:
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_label="NoSQL_Injection",
+                injection_type="NoSQL_Injection",
                 injection_detected=False,
                 fuzzing_results="NoSQL Test: Request exception occurred",
                 error_contents=[str(e)]
@@ -378,7 +378,7 @@ def test_csti(url: str) -> None:
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="CSTI_Injection",
+                        injection_type="CSTI_Injection",
                         injection_detected=False,
                         fuzzing_results="CSTI Test: Status mismatch or WAF triggered",
                         error_contents=error_info
@@ -391,7 +391,7 @@ def test_csti(url: str) -> None:
                         payload=payload,
                         response_code=response_pattern.status_code,
                         response_body=response_pattern.text,
-                        injection_label="CSTI_Injection",
+                        injection_type="CSTI_Injection",
                         injection_detected=True,
                         fuzzing_results="Found Injection",
                         error_contents=None
@@ -405,7 +405,7 @@ def test_csti(url: str) -> None:
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_label="CSTI_Injection",
+                injection_type="CSTI_Injection",
                 injection_detected=False,
                 fuzzing_results="CSTI Test: Request exception occurred",
                 error_contents=[str(e)]
@@ -450,7 +450,7 @@ def test_header_injection(url: str) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="HTTP_Header_Injection",
+                            injection_type="HTTP_Header_Injection",
                             injection_detected=False,
                             fuzzing_results="HTTP Header Test: Status mismatch or WAF triggered",
                             error_contents=error_info
@@ -465,7 +465,7 @@ def test_header_injection(url: str) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="HTTP_Header_Injection",
+                            injection_type="HTTP_Header_Injection",
                             injection_detected=True,
                             fuzzing_results="Found Injection",
                             error_contents=None
@@ -479,7 +479,7 @@ def test_header_injection(url: str) -> None:
                     payload=payload,
                     response_code=None,
                     response_body=str(e),
-                    injection_label="HTTP_Header_Injection",
+                    injection_type="HTTP_Header_Injection",
                     injection_detected=False,
                     fuzzing_results="HTTP Header Test: Request exception occurred",
                     error_contents=[str(e)]
@@ -498,6 +498,7 @@ def test_ldap_injection(server_url: str, base_dn: str) -> None:
             paylaod=None,
             response_code=None,
             response_body=None,
+            injection_type="LDAP_Injection",
             injection_detected=False,
             fuzzing_results="Bind failed",
             error_contents=None
@@ -517,7 +518,7 @@ def test_ldap_injection(server_url: str, base_dn: str) -> None:
                         payload=payload,
                         response_code=None,
                         response_body=None,
-                        injection_label="LDAP_Injection",
+                        injection_type="LDAP_Injection",
                         injection_detected=True,
                         fuzzing_results="Found Injection"
                     )
@@ -530,10 +531,10 @@ def test_ldap_injection(server_url: str, base_dn: str) -> None:
                     payload=payload,
                     response_code=None,
                     response_body=str(e),
-                    injection_label="LDAP_Injection",
+                    injection_type="LDAP_Injection",
                     injection_detected=False,
                     fuzzing_results="LDAP Test: Request exception occurred",
-                    error_contents=[str(e)]
+                    error_contents=str(e)
                 )
     logger.save()
 
@@ -585,7 +586,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="JSON_Injection",
+                            injection_type="JSON_Injection",
                             injection_detected=False,
                             fuzzing_results="JSON Test: Status mismatch or WAF triggered",
                             error_contents=error_info
@@ -600,7 +601,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="JSON_Injection",
+                            injection_type="JSON_Injection",
                             injection_detected=True,
                             fuzzing_results="Found Injection",
                             error_contents=None
@@ -614,7 +615,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
                     payload=payload,
                     response_code=None,
                     response_body=str(e),
-                    injection_label="JSON_Injection",
+                    injection_type="JSON_Injection",
                     injection_detected=False,
                     fuzzing_results="JSON Test: Request exception occurred",
                     error_contents=[str(e)]
@@ -648,7 +649,7 @@ def test_crlf_injection(url: str) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="CRLF_Injection",
+                            injection_type="CRLF_Injection",
                             injection_detected=False,
                             fuzzing_results="CRLF Test: Status mismatch or WAF triggered",
                             error_contents=error_info
@@ -663,7 +664,7 @@ def test_crlf_injection(url: str) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="CRLF_Injection",
+                            injection_type="CRLF_Injection",
                             injection_detected=True,
                             fuzzing_results="Found Injection",
                             error_contents=None
@@ -677,7 +678,7 @@ def test_crlf_injection(url: str) -> None:
                     payload=payload,
                     response_code=None,
                     response_body=str(e),
-                    injection_label="CRLF_Injection",
+                    injection_type="CRLF_Injection",
                     injection_detected=False,
                     fuzzing_results="CRLF Test: Request exception occurred",
                     error_contents=[str(e)]
@@ -710,7 +711,7 @@ def test_unicode_injection(url: str, param: str) -> None:
                                 payload=payload,
                                 response_code=response_pattern.status_code,
                                 response_body=response_pattern.text,
-                                injection_label="Unicode_Injection",
+                                injection_type="Unicode_Injection",
                                 injection_detected=False,
                                 fuzzing_results="Unicode Test: Status mismatch or WAF triggered",
                                 error_contents=error_info
@@ -726,7 +727,7 @@ def test_unicode_injection(url: str, param: str) -> None:
                                 payload=payload,
                                 response_code=response_pattern.status_code,
                                 response_body=response_pattern.text,
-                                injection_label="Unicode_Injection",
+                                injection_type="Unicode_Injection",
                                 injection_detected=True,
                                 fuzzing_results="Found Injection",
                                 error_contents=None
@@ -740,7 +741,7 @@ def test_unicode_injection(url: str, param: str) -> None:
                     payload=payload,
                     response_code=None,
                     response_body=str(e),
-                    injection_label="Unicode_Injection",
+                    injection_type="Unicode_Injection",
                     injection_detected=False,
                     fuzzing_results="Unicode Test: Request exception occurred",
                     error_contents=[str(e)]
@@ -777,7 +778,7 @@ def test_xpath_injection(url: str) -> None:
                                 payload=payload,
                                 response_code=response_pattern.status_code,
                                 response_body=response_pattern.text,
-                                injection_label="XPath_Injection",
+                                injection_type="XPath_Injection",
                                 injection_detected=False,
                                 fuzzing_results="XPath Test: Status mismatch or WAF triggered",
                                 error_contents=error_info
@@ -791,7 +792,7 @@ def test_xpath_injection(url: str) -> None:
                                 payload=payload,
                                 response_code=response_pattern.status_code,
                                 response_body=response_pattern.text,
-                                injection_label="XPath_Injection",
+                                injection_type="XPath_Injection",
                                 injection_detected=True,
                                 fuzzing_results="Found Injection",
                                 error_contents=None
@@ -805,7 +806,7 @@ def test_xpath_injection(url: str) -> None:
                         payload=payload,
                         response_code=None,
                         response_body=str(e),
-                        injection_label="XPath_Injection",
+                        injection_type="XPath_Injection",
                         injection_detected=False,
                         fuzzing_results="XPath Test: Request exception occurred",
                         error_contents=[str(e)]
@@ -843,7 +844,7 @@ def test_xslt_injection(url: str) -> None:
                                 payload=payload,
                                 response_code=response_pattern.status_code,
                                 response_body=response_pattern.text,
-                                injection_label="XSLT_Injection",
+                                injection_type="XSLT_Injection",
                                 injection_detected=False,
                                 fuzzing_results="XSLT Test: Status mismatch or WAF triggered",
                                 error_contents=error_info
@@ -856,7 +857,7 @@ def test_xslt_injection(url: str) -> None:
                                 payload=payload,
                                 response_code=response_pattern.status_code,
                                 response_body=response_pattern.text,
-                                injection_label="XSLT_Injection",
+                                injection_type="XSLT_Injection",
                                 injection_detected=True,
                                 fuzzing_results="Found Injection",
                                 error_contents=None
@@ -870,7 +871,7 @@ def test_xslt_injection(url: str) -> None:
                     payload=payload,
                     response_code=None,
                     response_body=str(e),
-                    injection_label="XSLT_Injection",
+                    injection_type="XSLT_Injection",
                     injection_detected=False,
                     fuzzing_results="XSLT Test: Request exception occurred",
                     error_contents=[str(e)]
@@ -909,7 +910,7 @@ def test_xxe(url: str) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="XXE_Injection",
+                            injection_type="XXE_Injection",
                             injection_detected=False,
                             fuzzing_results="XXE Test: Status mismatch or WAF triggered",
                             error_contents=error_info
@@ -922,7 +923,7 @@ def test_xxe(url: str) -> None:
                             payload=payload,
                             response_code=response_pattern.status_code,
                             response_body=response_pattern.text,
-                            injection_label="XXE_Injection",
+                            injection_type="XXE_Injection",
                             injection_detected=True,
                             fuzzing_results="Found Injection",
                             error_contents=None
@@ -936,7 +937,7 @@ def test_xxe(url: str) -> None:
                 payload=payload,
                 response_code=None,
                 response_body=str(e),
-                injection_label="XXE_Injection",
+                injection_type="XXE_Injection",
                 injection_detected=False,
                 fuzzing_results="XXE Test: Request exception occurred",
                 error_contents=[str(e)]
