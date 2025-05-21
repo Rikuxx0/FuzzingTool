@@ -21,13 +21,14 @@ class FuzzLogger:
                     self.results = []
 
     #attack_typeも実装予定
-    def log_result(self, target_url, payload, response_code, response_body, injection_detected, fuzzing_results=None, error_contents=None):
+    def log_result(self, target_url, payload, response_code, response_body, injection_label ,injection_detected, fuzzing_results=None, error_contents=None):
         result = {
             "timestamp": datetime.now().isoformat(),
             "target_url": target_url,
             "payload": payload,
             "response_code": response_code,
             "response_body": response_body,
+            "injection_label": injection_label,
             "injection_detected": injection_detected,
             "fuzzing_results": fuzzing_results,
             "error_contents": error_contents,
