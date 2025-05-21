@@ -28,7 +28,7 @@ class FuzzLogger:
             "payload": payload,
             "response_code": response_code,
             "response_body": response_body,
-            "injection_label": injection_type,
+            "injection_type": injection_type,
             "injection_detected": injection_detected,
             "fuzzing_results": fuzzing_results,
             "error_contents": error_contents,

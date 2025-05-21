@@ -3,7 +3,6 @@ import json
 import sys
 import time
 import datetime
-from typing import Dict
 from ldap3 import Server, Connection, ALL
 from lxml import etree
 from fuzz_logger import FuzzLogger
@@ -122,7 +121,7 @@ logger = FuzzLogger(filename=f"output/fuzz_{today_str}.json", overwrite=True)
 
 
 # ファジング関数
-def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: list[str] = None) -> None:
+def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: list[str] = None) -> None:
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
@@ -141,7 +140,7 @@ def fuzz(url: str, base_params: Dict[str, str], target_param: str, payloads: lis
         test_params[target_param] = payload
 
         try:
-            response_pattern = requests.post(url, params=test_params)
+            response_pattern = requests.get(url, params=test_params)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -200,7 +199,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
         }
         print(f"Set Username: {payload} | Password: 'dummy' password")
         try:
-            response_pattern = requests.post(url, data=data)
+            response_pattern = requests.get(url, data=data)
             if "invalid" not in response_pattern.text.lower():
                 if response_pattern.status_code == 200:
                     print(f"Possible | username: {payload}")
@@ -237,6 +236,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                 response_code=None,
                 response_body=str(e),
                 injection_type="Fuzzing_username",
+                injection_detected=False,
                 fuzzing_results="Fuzz Login Username: Request exception occurred",
                 error_contents=[str(e)]
             )
@@ -250,7 +250,7 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
         }
         print(f"Set Username: 'dummy' username | Password: {payload}")
         try:
-            response_pattern = requests.post(url, data=data)
+            response_pattern = requests.get(url, data=data)
             if "invalid" not in response_pattern.text.lower():
                 if response_pattern.status_code == 200: 
                     print(f"Possible | password: {payload}")
@@ -287,7 +287,8 @@ def fuzz_login(url: str, username_field: str, password_field: str, payload: str 
                 response_code=None,
                 response_body=str(e),
                 injection_type="Fuzzing_password",
-                injection_results="Fuzz Login Password: Request exception occurred",
+                injection_detected=False,
+                fuzzing_results="Fuzz Login Password: Request exception occurred",
                 error_contents=[str(e)]
             )
 
@@ -299,7 +300,7 @@ def test_nosql_injection(url :str) -> None:
     
     #比較用のレスポンステキスト
     try:
-        response = requests.post(url)
+        response = requests.get(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -310,7 +311,7 @@ def test_nosql_injection(url :str) -> None:
     for payload in NO_SQL_PAYLOADS:
         try:
             payload_json = json.loads(payload)
-            response_pattern = requests.post(url, json=payload_json, headers=headers)
+            response_pattern = requests.get(url, json=payload_json, headers=headers)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -362,7 +363,7 @@ def test_nosql_injection(url :str) -> None:
 def test_csti(url: str) -> None:
     #比較用のレスポンステキスト
     try:
-        response = requests.post(url)
+        response = requests.get(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -371,7 +372,7 @@ def test_csti(url: str) -> None:
     CSTI_PAYLOADS = ["${7*7}"]
     for payload in CSTI_PAYLOADS:
         try:
-            response_pattern = requests.post(url, params={"name": payload})
+            response_pattern = requests.get(url, params={"name": payload})
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code :
                     print(f"Exception Result (ex. WAF protector, Server Error or IP Restriction)")
@@ -428,7 +429,7 @@ def test_header_injection(url: str) -> None:
     
     # 比較用のレスポンステキスト
     try:
-        response = requests.post(url)
+        response = requests.get(url)
         result = response.text
         baseline_headers = response.headers #ヘッダー破損の変化も含める
     except Exception as e:
@@ -442,7 +443,7 @@ def test_header_injection(url: str) -> None:
             }
             
             try:
-                response_pattern = requests.post(url, headers=headers)
+                response_pattern = requests.get(url, headers=headers)
                 baseline_headers_pattern = response_pattern.headers
                 
                 if response_pattern.text != result or baseline_headers_pattern != baseline_headers: 
@@ -573,7 +574,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
 
     #比較用のレスポンステキスト
     try:
-        response = requests.post(url)
+        response = requests.get(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -584,7 +585,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
         data["username"] = payload
 
         try:
-            response_pattern = requests.post(url, data=json.dumps(data), headers=headers)
+            response_pattern = requests.get(url, data=json.dumps(data), headers=headers)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -637,7 +638,7 @@ def test_json_injection(url: str, base_data: dict[str, str]) -> None:
 def test_crlf_injection(url: str) -> None:
     #比較用のレスポンステキスト
     try:
-        response = requests.post(url)
+        response = requests.get(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -645,7 +646,7 @@ def test_crlf_injection(url: str) -> None:
     
     for payload in CRLF_PAYLOADS:
         try:
-            response_pattern = requests.post(url, params={"q": payload})
+            response_pattern = requests.get(url, params={"q": payload})
 
             # レスポンスヘッダーにペイロードが含まれていれば脆弱性が存在する可能性
             if response_pattern.text != result:
@@ -698,7 +699,7 @@ def test_crlf_injection(url: str) -> None:
 def test_unicode_injection(url: str, param: str) -> None:
     #比較用のレスポンステキスト
     try:
-        response = requests.post(url)
+        response = requests.get(url)
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -707,7 +708,7 @@ def test_unicode_injection(url: str, param: str) -> None:
     for payload in UNICODE_PAYLOADS:
         try:
             params = {param: "admin" + payload}
-            response_pattern = requests.post(url, params=params)
+            response_pattern = requests.get(url, params=params)
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -762,7 +763,7 @@ def test_xpath_injection(url: str) -> None:
     
     #比較用のレスポンステキスト
     try:
-        response = requests.post(url,  headers={'Content-Type': 'application/xml'})
+        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -773,7 +774,7 @@ def test_xpath_injection(url: str) -> None:
         query = f"//user[username='{payload}']/password"
 
         try:
-            response_pattern = requests.post(url, params=query,  headers={'Content-Type': 'application/xml'})
+            response_pattern = requests.get(url, params=query,  headers={'Content-Type': 'application/xml'})
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -827,7 +828,7 @@ def test_xpath_injection(url: str) -> None:
 def test_xslt_injection(url: str) -> None:
    #比較用のレスポンステキスト
     try:
-        response = requests.post(url,  headers={'Content-Type': 'application/xml'})
+        response = requests.get(url,  headers={'Content-Type': 'application/xml'})
         result = response.text
     except Exception as e:
         print(f"[Error] Failed to fetch baseline: {e}")
@@ -840,7 +841,7 @@ def test_xslt_injection(url: str) -> None:
 
     
         try:
-            response_pattern = requests.post(url, xslt_doc, headers={'Content-Type': 'application/xml'})
+            response_pattern = requests.get(url, xslt_doc, headers={'Content-Type': 'application/xml'})
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
@@ -893,7 +894,7 @@ def test_xxe(url: str) -> None:
     # ベースラインレスポンスの取得(空のXML送信)
     try:
         baseline_xml = "<root>test</root>"
-        response = requests.post(
+        response = requests.get(
             url,
             data=baseline_xml.encode('utf-8'),
             headers={'Content-Type': 'application/xml'},
@@ -907,7 +908,7 @@ def test_xxe(url: str) -> None:
     for payload in XXE_PAYLOADS:
         
         try:
-            response_pattern = requests.post(url, data=payload.encode('utf-8'),  headers={'Content-Type': 'application/xml'}, timeout=10 )
+            response_pattern = requests.get(url, data=payload.encode('utf-8'),  headers={'Content-Type': 'application/xml'}, timeout=10 )
             
             if response_pattern.text != result:
                 if response_pattern.status_code != response.status_code:
