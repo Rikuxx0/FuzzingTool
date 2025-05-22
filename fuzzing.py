@@ -125,14 +125,14 @@ def fuzz(url: str, base_params: dict[str, str], target_param: str, payloads: lis
     if payloads is None:
         payloads = XSS_PAYLOADS + OS_COMMAND_PAYLOADS
 
-    #比較用のレスポンステキスト
-    try:
-        response = requests.get(url, params=base_params)
-        result = response.text
-        
-    except Exception as e:
-        print(f"[Error] Failed to fetch baseline: {e}")
-        return
+        #比較用のレスポンステキスト
+        try:
+            response = requests.get(url, params=base_params)
+            result = response.text
+            
+        except Exception as e:
+            print(f"[Error] Failed to fetch baseline: {e}")
+            return
 
     for payload in payloads:
         
@@ -359,7 +359,7 @@ def test_nosql_injection(url :str) -> None:
 
     logger.save()
 
-# CSTIテスト関数
+# CSTIテスト関数　nameを書き換えるクエリパラメータの適応
 def test_csti(url: str) -> None:
     #比較用のレスポンステキスト
     try:
