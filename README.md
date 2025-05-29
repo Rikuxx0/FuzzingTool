@@ -2,7 +2,7 @@
 
 ## 追記
 本来、ファジングして、インジェクションの脆弱性があった場合、そのレポートにおいて、インジェクションだった場合とエラーを吐いた場合をLLMモデルで学習し、さらに良いテストコードを作成させるツールにするつもりでしたが、OSSとして上げておくのでどうぞ煮るなり何なりしてください。
-問題は、ファジングしたとしても、インジェクションを検出できているのかが、不明になっていることです。構文エラーはございません。
+問題は、ファジングしたとしても、正常なレスポンスと異常なレスポンスとの差異がどちらも存在するため、インジェクションを検出できているのかが、不明になっていることです。構文エラーはございません。
 
 ## description
 This tool is a Python-based script designed for testing various injection vulnerabilities in web applications. It includes modules for testing XSS, SQL injection, NoSQL injection, OS command injection, CRLF injection, LDAP injection, XPath injection, XSLT injection, XXE vulnerabilities, and more. This tool is based on all injection vulnerabilities in hacktricks.
